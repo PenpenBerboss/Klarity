@@ -4,18 +4,7 @@ import React, { useState, useRef } from 'react';
 import { clsx } from 'clsx';
 import { ChevronLeft, ChevronRight, Calendar, MoveHorizontal } from 'lucide-react';
 
-interface Task {
-  id: string;
-  title: string;
-  project: string;
-  assignee: string;
-  status: string;
-  priority: string;
-  dueDate: string;
-  dependencies: string[];
-  sprintId: string | null;
-  subtasks?: any[];
-}
+import { Task } from '@/lib/api';
 
 interface TimelineViewProps {
   filteredTasks: Task[];

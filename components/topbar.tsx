@@ -1,9 +1,19 @@
 import React, { useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { Search, Bell, Menu, Moon, Sun, User } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { NotificationCenter } from './notification-center';
 import { useNotifications } from './notification-provider';
-import { LiveClock } from './live-clock';
+
+const LiveClock = dynamic(() => import('./live-clock').then(m => m.LiveClock), {
+  ssr: false,
+  loading: () => (
+    <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gray-50/90 dark:bg-gray-800/80 border border-gray-200/80 dark:border-gray-700/80 text-xs text-gray-400">
+      <div className="w-3.5 h-3.5 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin" />
+      <span>Chargement...</span>
+    </div>
+  ),
+});
 
 export function Topbar({ 
   toggleSidebar, 
@@ -49,7 +59,8 @@ export function Topbar({
           onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
           className="p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors cursor-pointer"
           aria-label="Toggle theme"
-          title={theme === 'dark' ? "Passer au thème clair" : "Passer au thème sombre"}
+          title={mounted ? (theme === 'dark' ? "Passer au thème clair" : "Passer au thème sombre") : "Changer de thème"}
+          suppressHydrationWarning
         >
           {mounted ? (theme === 'dark' ? <Sun size={20} className="text-amber-400" /> : <Moon size={20} className="text-gray-600" />) : <div className="w-5 h-5" />}
         </button>

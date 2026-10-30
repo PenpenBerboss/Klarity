@@ -131,12 +131,15 @@ CREATE TABLE notifications (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 10. Table des Paramètres Utilisateur
+-- 10. Table des Paramètres Utilisateur & Fuseau Horaire
 CREATE TABLE user_settings (
     user_id VARCHAR(50) PRIMARY KEY,
     theme ENUM('light', 'dark', 'system') DEFAULT 'system',
     accent_color VARCHAR(30) DEFAULT 'indigo',
     density ENUM('compact', 'comfortable', 'spacious') DEFAULT 'comfortable',
+    language VARCHAR(10) DEFAULT 'fr',
+    timezone VARCHAR(100) DEFAULT 'Europe/Paris',
+    date_format VARCHAR(20) DEFAULT 'DD/MM/YYYY',
     email_notifications BOOLEAN DEFAULT TRUE,
     push_notifications BOOLEAN DEFAULT TRUE,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

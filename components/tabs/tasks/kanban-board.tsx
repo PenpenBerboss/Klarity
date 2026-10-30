@@ -5,18 +5,7 @@ import { MoreHorizontal, Plus, Trash2, Edit2, User, Tag, Link2, Copy, ArrowRight
 import { clsx } from 'clsx';
 import { DeadlineTimerBadge } from '../../deadline-timer-badge';
 
-interface Task {
-  id: string;
-  title: string;
-  project: string;
-  assignee: string;
-  status: string;
-  priority: string;
-  dueDate: string;
-  dependencies?: string[];
-  subtasks?: { id: string; title: string; completed: boolean }[];
-  sprintId?: string | null;
-}
+import { Task } from '@/lib/api';
 
 interface Column {
   id: string;
@@ -366,7 +355,7 @@ export function KanbanBoard({
 
               {/* Add Task Quick Button */}
               <button 
-                onClick={() => openEditModal({ id: '', title: '', project: 'Refonte ERP', assignee: teamMembers[0] || '', status: col.id, priority: 'medium', dueDate: new Date().toISOString().split('T')[0] })}
+                onClick={() => openEditModal({ id: '', title: '', project: 'Refonte ERP', assignee: teamMembers[0] || '', status: col.id as any, priority: 'medium', dueDate: new Date().toISOString().split('T')[0] })}
                 className="w-full py-2.5 flex items-center justify-center gap-2 text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50/50 dark:hover:bg-indigo-950/30 rounded-xl transition-all border border-dashed border-gray-300 dark:border-gray-700 cursor-pointer"
               >
                 <Plus size={14} /> Ajouter une tâche

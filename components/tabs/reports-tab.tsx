@@ -1,11 +1,37 @@
 "use client";
 
 import React, { useState } from 'react';
-import { ProjectHealthChart, TeamWorkloadChart, SprintVelocityChart, CumulativeFlowChart } from '@/components/charts';
+import dynamic from 'next/dynamic';
 import { Download, Loader2, FileText, CheckCircle2, TrendingUp, Users, Target, ShieldCheck } from 'lucide-react';
 import { useNotifications } from '@/components/notification-provider';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+
+const ChartLoadingFallback = () => (
+  <div className="h-72 w-full flex items-center justify-center bg-gray-50/50 dark:bg-gray-800/30 rounded-xl animate-pulse">
+    <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+  </div>
+);
+
+const ProjectHealthChart = dynamic(() => import('@/components/charts').then(m => m.ProjectHealthChart), {
+  ssr: false,
+  loading: ChartLoadingFallback,
+});
+
+const TeamWorkloadChart = dynamic(() => import('@/components/charts').then(m => m.TeamWorkloadChart), {
+  ssr: false,
+  loading: ChartLoadingFallback,
+});
+
+const SprintVelocityChart = dynamic(() => import('@/components/charts').then(m => m.SprintVelocityChart), {
+  ssr: false,
+  loading: ChartLoadingFallback,
+});
+
+const CumulativeFlowChart = dynamic(() => import('@/components/charts').then(m => m.CumulativeFlowChart), {
+  ssr: false,
+  loading: ChartLoadingFallback,
+});
 
 export function ReportsTab() {
   const [isExporting, setIsExporting] = useState(false);

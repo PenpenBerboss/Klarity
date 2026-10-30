@@ -1,6 +1,13 @@
 "use client";
 
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { 
+  getStoredNotifications, 
+  createSystemNotification, 
+  markNotificationRead, 
+  clearAllNotifications as clearNotificationsFromDb, 
+  NotificationItem 
+} from '@/lib/api';
 
 export type NotificationType = 'task_assigned' | 'due_date' | 'comment' | 'status_change' | 'system';
 
@@ -9,7 +16,7 @@ export interface Notification {
   type: NotificationType;
   title: string;
   message: string;
-  timestamp: Date;
+  timestamp: Date | string;
   read: boolean;
   link?: string;
 }
@@ -27,42 +34,67 @@ interface NotificationContextType {
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
 export function NotificationProvider({ children }: { children: React.ReactNode }) {
-  const [notifications, setNotifications] = useState<Notification[]>([
-    {
-      id: '1',
-      type: 'task_assigned',
-      title: 'Bienvenue sur Klarity',
-      message: 'Votre espace de travail est prêt. Commencez par créer votre premier projet.',
-      timestamp: new Date('2026-10-29T12:00:00.000Z'),
-      read: false,
-    }
-  ]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+
+  // Load from database on mount and listen for real-time storage updates
+  useEffect(() => {
+    const loadFromDb = () => {
+      const dbItems = getStoredNotifications();
+      setNotifications(dbItems);
+    };
+
+    loadFromDb();
+
+    const handleDbUpdate = (e: Event) => {
+      const custom = e as CustomEvent;
+      if (custom.detail?.key === 'notifications') {
+        loadFromDb();
+      }
+    };
+
+    window.addEventListener('klarity_db_update', handleDbUpdate);
+    return () => window.removeEventListener('klarity_db_update', handleDbUpdate);
+  }, []);
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
   const addNotification = useCallback((notification: Omit<Notification, 'id' | 'timestamp' | 'read'>) => {
-    const newNotification: Notification = {
-      ...notification,
-      id: Math.random().toString(36).substring(2, 9),
-      timestamp: new Date(),
-      read: false,
-    };
-    setNotifications(prev => [newNotification, ...prev]);
+    const created = createSystemNotification({
+      type: notification.type,
+      title: notification.title,
+      message: notification.message,
+      link: notification.link
+    });
+    setNotifications(prev => [created, ...prev]);
   }, []);
 
   const markAsRead = useCallback((id: string) => {
-    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+    const updated = markNotificationRead(id);
+    setNotifications(updated);
   }, []);
 
   const markAllAsRead = useCallback(() => {
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    setNotifications(prev => {
+      const updated = prev.map(n => ({ ...n, read: true }));
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem('klarity_db_notifications', JSON.stringify(updated));
+      }
+      return updated;
+    });
   }, []);
 
   const deleteNotification = useCallback((id: string) => {
-    setNotifications(prev => prev.filter(n => n.id !== id));
+    setNotifications(prev => {
+      const updated = prev.filter(n => n.id !== id);
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem('klarity_db_notifications', JSON.stringify(updated));
+      }
+      return updated;
+    });
   }, []);
 
   const clearAll = useCallback(() => {
+    clearNotificationsFromDb();
     setNotifications([]);
   }, []);
 

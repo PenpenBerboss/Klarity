@@ -6,30 +6,11 @@ import { clsx } from 'clsx';
 import { motion, AnimatePresence } from 'motion/react';
 import { useNotifications } from '@/components/notification-provider';
 
-interface Task {
-  id: string;
-  title: string;
-  project: string;
-  assignee: string;
-  status: string;
-  priority: string;
-  dueDate: string;
-  dependencies: string[];
-  sprintId: string | null;
-  subtasks?: any[];
-}
-
-interface Sprint {
-  id: string;
-  name: string;
-  startDate: string;
-  endDate: string;
-  status: 'active' | 'planned' | 'completed';
-}
+import { Task, Sprint } from '@/lib/api';
 
 interface PlanningViewProps {
   tasks: Task[];
-  setTasks: (tasks: Task[]) => void;
+  setTasks: (tasks: any) => void;
   sprints: Sprint[];
   setSprints: (sprints: Sprint[]) => void;
   openEditModal: (task: Task) => void;

@@ -1,5 +1,7 @@
 {
-  "name": "Klarity - Pilotage Décisionnel",
-  "description": "Plateforme web interne de gestion de projet d'entreprise orientée pilotage décisionnel.",
-  "requestFramePermissions": []
+  "name": "Klarity Platform",
+  "description": "Solution complète de gestion de projets, suivi des tâches en temps réel, KPIs et pilotage d'équipe.",
+  "request_capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }

@@ -94,7 +94,8 @@ export function NotificationCenter({ isOpen, onClose }: { isOpen: boolean, onClo
                         </p>
                         <span className="text-[10px] text-gray-400 whitespace-nowrap" suppressHydrationWarning>
                           {mounted ? (() => {
-                            const diffInMinutes = Math.round((notification.timestamp.getTime() - now) / (1000 * 60));
+                            const ts = new Date(notification.timestamp).getTime();
+                            const diffInMinutes = Math.round((ts - now) / (1000 * 60));
                             return new Intl.RelativeTimeFormat('fr', { numeric: 'auto' }).format(diffInMinutes, 'minute');
                           })() : 'À l\'instant'}
                         </span>

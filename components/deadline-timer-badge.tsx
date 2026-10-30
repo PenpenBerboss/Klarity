@@ -82,6 +82,7 @@ export function DeadlineTimerBadge({ dueDate, status }: DeadlineTimerBadgeProps)
 
   return (
     <div
+      suppressHydrationWarning
       className={clsx(
         "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium border transition-colors",
         badgeStyles[timeRemaining.level]
@@ -91,7 +92,7 @@ export function DeadlineTimerBadge({ dueDate, status }: DeadlineTimerBadgeProps)
       {timeRemaining.level === 'completed' && <CheckCircle2 size={12} className="shrink-0" />}
       {timeRemaining.level === 'overdue' && <AlertTriangle size={12} className="shrink-0" />}
       {timeRemaining.level !== 'completed' && timeRemaining.level !== 'overdue' && <Clock size={12} className="shrink-0" />}
-      <span>{timeRemaining.text}</span>
+      <span suppressHydrationWarning>{timeRemaining.text}</span>
     </div>
   );
 }

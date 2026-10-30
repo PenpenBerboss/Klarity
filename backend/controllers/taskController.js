@@ -95,6 +95,24 @@ exports.updateTask = async (req, res) => {
   }
 };
 
+// Réassigner des tâches en masse
+exports.reassignTasksBulk = async (req, res) => {
+  const { reassignments } = req.body; // Array of { taskId, newAssigneeNameOrId }
+
+  try {
+    if (Array.isArray(reassignments)) {
+      for (const item of reassignments) {
+        if (item.taskId && item.newAssignee) {
+          await db.query('UPDATE tasks SET assignee_id = ? WHERE id = ?', [item.newAssignee, item.taskId]);
+        }
+      }
+    }
+    res.json({ message: 'Réassignation globale effectuée avec succès' });
+  } catch (err) {
+    res.status(500).json({ error: 'Erreur lors de la réassignation en masse', details: err.message });
+  }
+};
+
 // Supprimer une tâche
 exports.deleteTask = async (req, res) => {
   const { id } = req.params;

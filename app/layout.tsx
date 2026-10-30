@@ -1,30 +1,30 @@
-import type {Metadata} from 'next';
-import { Inter, JetBrains_Mono } from 'next/font/google';
-import { ThemeProvider } from '@/components/theme-provider';
-import { NotificationProvider } from '@/components/notification-provider';
-import { AppearanceProvider } from '@/components/appearance-provider';
+import React from 'react';
 import './globals.css';
+import { Inter } from 'next/font/google';
+import { ThemeProvider } from '@/components/theme-provider';
+import { AppearanceProvider } from '@/components/appearance-provider';
+import { NotificationProvider } from '@/components/notification-provider';
 
 const inter = Inter({
   subsets: ['latin'],
-  variable: '--font-sans',
+  display: 'swap',
+  variable: '--font-inter',
 });
 
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ['latin'],
-  variable: '--font-mono',
-});
-
-export const metadata: Metadata = {
-  title: 'Klarity | Pilotage Décisionnel',
-  description: 'Plateforme moderne de gestion de projet et de planification agile',
+export const metadata = {
+  title: 'Klarity - Plateforme de Gestion de Projets & Équipe',
+  description: 'Solution SaaS de suivi de projets, gestion des tâches, indicateurs KPIs et pilotage d\'équipe.',
 };
 
-export default function RootLayout({children}: {children: React.ReactNode}) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
-    <html lang="fr" suppressHydrationWarning className={`${inter.variable} ${jetbrainsMono.variable}`}>
-      <body className="font-sans bg-gray-50 text-gray-900 dark:bg-gray-950 dark:text-gray-100 antialiased" suppressHydrationWarning>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+    <html lang="fr" suppressHydrationWarning data-accent="indigo" data-density="comfortable" className={inter.variable}>
+      <body suppressHydrationWarning className={`${inter.className} antialiased bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 min-h-screen transition-colors duration-200`}>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange={false}>
           <AppearanceProvider>
             <NotificationProvider>
               {children}

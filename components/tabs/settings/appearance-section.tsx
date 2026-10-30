@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from 'next-themes';
 import { useAppearance, AccentColor, Density } from '@/components/appearance-provider';
-import { Sun, Moon, Monitor, Check, Sparkles, Sliders } from 'lucide-react';
+import { Sun, Moon, Monitor, Check, Palette, Sliders } from 'lucide-react';
 import { clsx } from 'clsx';
 
 export function AppearanceSection() {
@@ -21,6 +21,7 @@ export function AppearanceSection() {
     { id: 'emerald', name: 'Émeraude', colorClass: 'bg-emerald-600', borderClass: 'border-emerald-600' },
     { id: 'purple', name: 'Violet', colorClass: 'bg-purple-600', borderClass: 'border-purple-600' },
     { id: 'amber', name: 'Ambre', colorClass: 'bg-amber-600', borderClass: 'border-amber-600' },
+    { id: 'blue', name: 'Bleu Océan', colorClass: 'bg-blue-600', borderClass: 'border-blue-600' },
   ];
 
   if (!mounted) {
@@ -155,9 +156,9 @@ export function AppearanceSection() {
       {/* Accent Color Selection */}
       <div className="pt-6 border-t border-gray-100 dark:border-gray-800 space-y-3">
         <label className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
-          <Sparkles size={16} className="text-indigo-500" /> Couleur d&apos;accentuation
+          <Palette size={16} className="text-indigo-500" /> Couleur d&apos;accentuation
         </label>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
           {accentColors.map((color) => (
             <button
               key={color.id}

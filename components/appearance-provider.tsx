@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 
-export type AccentColor = 'indigo' | 'emerald' | 'purple' | 'amber';
+export type AccentColor = 'indigo' | 'emerald' | 'purple' | 'amber' | 'blue';
 export type Density = 'comfortable' | 'compact';
 
 interface AppearanceContextType {
@@ -35,12 +35,16 @@ export function AppearanceProvider({ children }: { children: React.ReactNode }) 
     const timer = setTimeout(() => {
       try {
         const savedAccent = localStorage.getItem('klarity_accent') as AccentColor;
-        if (savedAccent && ['indigo', 'emerald', 'purple', 'amber'].includes(savedAccent)) {
+        if (savedAccent && ['indigo', 'emerald', 'purple', 'amber', 'blue'].includes(savedAccent)) {
           setAccentColorState(savedAccent);
+          document.documentElement.setAttribute('data-accent', savedAccent);
+        } else {
+          document.documentElement.setAttribute('data-accent', 'indigo');
         }
         const savedDensity = localStorage.getItem('klarity_density') as Density;
         if (savedDensity && ['comfortable', 'compact'].includes(savedDensity)) {
           setDensityState(savedDensity);
+          document.documentElement.setAttribute('data-density', savedDensity);
         }
       } catch {
         // Ignore
@@ -57,8 +61,19 @@ export function AppearanceProvider({ children }: { children: React.ReactNode }) 
 
   const setAccentColor = useCallback((color: AccentColor) => {
     setAccentColorState(color);
+    document.documentElement.setAttribute('data-accent', color);
     try {
       localStorage.setItem('klarity_accent', color);
+      window.dispatchEvent(new CustomEvent('klarity_accent_changed', { detail: { accent: color } }));
+      
+      // Persist to backend API asynchronously
+      fetch('/api/user-settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accentColor: color }),
+      }).catch(() => {
+        // Fallback handled locally
+      });
     } catch {
       // Ignore
     }
@@ -66,6 +81,7 @@ export function AppearanceProvider({ children }: { children: React.ReactNode }) 
 
   const setDensity = useCallback((d: Density) => {
     setDensityState(d);
+    document.documentElement.setAttribute('data-density', d);
     try {
       localStorage.setItem('klarity_density', d);
     } catch {
@@ -104,6 +120,16 @@ export function AppearanceProvider({ children }: { children: React.ReactNode }) 
           darkLightBg: 'dark:bg-amber-500/20',
           borderColor: 'border-amber-500 dark:border-amber-500/30',
           ringColor: 'focus:ring-amber-500/20 focus:border-amber-500',
+        };
+      case 'blue':
+        return {
+          primaryBg: 'bg-blue-600 dark:bg-blue-500',
+          primaryHoverBg: 'hover:bg-blue-700 dark:hover:bg-blue-600',
+          primaryText: 'text-blue-600 dark:text-blue-400',
+          lightBg: 'bg-blue-50 dark:bg-blue-500/10',
+          darkLightBg: 'dark:bg-blue-500/20',
+          borderColor: 'border-blue-500 dark:border-blue-500/30',
+          ringColor: 'focus:ring-blue-500/20 focus:border-blue-500',
         };
       case 'indigo':
       default:

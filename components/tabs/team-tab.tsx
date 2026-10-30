@@ -1,35 +1,57 @@
 "use client";
 
-import React, { useState } from 'react';
-import { Mail, MoreHorizontal, Plus, User } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Mail, MoreHorizontal, Plus, User, Link2, Check, RefreshCw, Trash2, Edit3 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { TeamModal } from './team/team-modal';
-
-const initialTeam = [
-  { id: 1, name: 'Samuel Mbarga', role: 'Lead Developer', department: 'Ingénierie', capacity: 95, status: 'surchargé', email: 'samuel@klarity.cm' },
-  { id: 2, name: 'Chantal Abena', role: 'Product Manager', department: 'Produit', capacity: 80, status: 'optimal', email: 'chantal@klarity.cm' },
-  { id: 3, name: 'Emmanuel Nguema', role: 'DevOps Engineer', department: 'Infrastructure', capacity: 60, status: 'optimal', email: 'emmanuel@klarity.cm' },
-  { id: 4, name: 'Nathalie Ekotto', role: 'UX/UI Designer', department: 'Design', capacity: 110, status: 'critique', email: 'nathalie@klarity.cm' },
-  { id: 5, name: 'Dieudonné Tchato', role: 'Développeur Frontend', department: 'Ingénierie', capacity: 40, status: 'disponible', email: 'dieudonne@klarity.cm' },
-];
+import { ReassignModal } from './team/reassign-modal';
+import { 
+  getStoredTeam, 
+  saveTeamMember, 
+  deleteTeamMember, 
+  getStoredTasks, 
+  reassignTasksBulk, 
+  UserMember, 
+  Task 
+} from '@/lib/api';
 
 export function TeamTab() {
-  const [team, setTeam] = useState(initialTeam);
+  const [team, setTeam] = useState<UserMember[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<'manual' | 'invite'>('manual');
-  const [editingMember, setEditingMember] = useState<any | null>(null);
+  const [editingMember, setEditingMember] = useState<UserMember | null>(null);
   
+  // Reassign Modal State
+  const [isReassignModalOpen, setIsReassignModalOpen] = useState(false);
+  const [reassignMemberTarget, setReassignMemberTarget] = useState<UserMember | null>(null);
+
   // Manual creation state
   const [manualUser, setManualUser] = useState({ name: '', email: '', role: '', department: '' });
   
   // Invite state
   const [inviteUser, setInviteUser] = useState({ email: '', role: '' });
 
-  const [activeMenuId, setActiveMenuId] = useState<number | null>(null);
+  const [activeMenuId, setActiveMenuId] = useState<number | string | null>(null);
+  const [copiedMemberId, setCopiedMemberId] = useState<number | string | null>(null);
   const menuRef = React.useRef<HTMLDivElement>(null);
 
+  // Load from persistent database storage
+  useEffect(() => {
+    const loadFromDb = () => {
+      setTeam(getStoredTeam());
+      setTasks(getStoredTasks());
+    };
+
+    loadFromDb();
+
+    const handleDbUpdate = () => loadFromDb();
+    window.addEventListener('klarity_db_update', handleDbUpdate);
+    return () => window.removeEventListener('klarity_db_update', handleDbUpdate);
+  }, []);
+
   // Close menu when clicking outside
-  React.useEffect(() => {
+  useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setActiveMenuId(null);
@@ -39,33 +61,40 @@ export function TeamTab() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const deleteMember = (id: number) => {
-    setTeam(team.filter(m => m.id !== id));
+  const handleDeleteMember = (id: number | string) => {
+    const updatedTeam = deleteTeamMember(id);
+    setTeam(updatedTeam);
     setActiveMenuId(null);
   };
 
   const handleManualCreate = (e: React.FormEvent) => {
     e.preventDefault();
     if (editingMember) {
-      setTeam(team.map(m => m.id === editingMember.id ? { ...m, ...manualUser } : m));
+      const updated = saveTeamMember({
+        ...editingMember,
+        name: manualUser.name,
+        email: manualUser.email,
+        role: manualUser.role,
+        department: manualUser.department
+      });
+      setTeam(updated);
       setEditingMember(null);
     } else {
-      const newUser = {
-        id: team.length + 1,
+      const updated = saveTeamMember({
         name: manualUser.name,
         email: manualUser.email,
         role: manualUser.role,
         department: manualUser.department,
         capacity: 0,
         status: 'disponible'
-      };
-      setTeam([...team, newUser]);
+      });
+      setTeam(updated);
     }
     setIsModalOpen(false);
     setManualUser({ name: '', email: '', role: '', department: '' });
   };
 
-  const openEditModal = (member: any) => {
+  const openEditModal = (member: UserMember) => {
     setEditingMember(member);
     setManualUser({
       name: member.name,
@@ -85,25 +114,42 @@ export function TeamTab() {
     setIsModalOpen(true);
   };
 
-  const reassignTasks = (member: any) => {
-    alert(`Réassignation des tâches de ${member.name}. Choisissez un nouveau collaborateur.`);
+  const openReassignModal = (member: UserMember) => {
+    setReassignMemberTarget(member);
+    setIsReassignModalOpen(true);
     setActiveMenuId(null);
+  };
+
+  const handleConfirmReassign = (reassignments: Array<{ taskId: string; newAssignee: string }>) => {
+    if (!reassignMemberTarget) return;
+
+    const updatedTasks = reassignTasksBulk(reassignments);
+    setTasks(updatedTasks);
+    setIsReassignModalOpen(false);
   };
 
   const handleInvite = (e: React.FormEvent) => {
     e.preventDefault();
-    const newUser = {
-      id: team.length + 1,
+    const updated = saveTeamMember({
       name: 'En attente...',
       email: inviteUser.email,
-      role: inviteUser.role,
-      department: '-',
+      role: inviteUser.role || 'Invité',
+      department: 'En attente',
       capacity: 0,
       status: 'invité'
-    };
-    setTeam([...team, newUser]);
-    setIsModalOpen(false);
+    });
+
+    setTeam(updated);
     setInviteUser({ email: '', role: '' });
+  };
+
+  const copyInviteLinkForMember = (member: UserMember) => {
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://klarity.cm';
+    const link = `${origin}/join?email=${encodeURIComponent(member.email)}`;
+    navigator.clipboard.writeText(link);
+    setCopiedMemberId(member.id);
+    setTimeout(() => setCopiedMemberId(null), 2000);
+    setActiveMenuId(null);
   };
 
   return (
@@ -111,17 +157,17 @@ export function TeamTab() {
       <header className="mb-6 sm:mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-gray-900 dark:text-white">Équipe</h1>
-          <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">Gérez les membres de votre équipe et leur charge de travail.</p>
+          <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">Gérez les membres de votre équipe et leur charge de travail en base de données.</p>
         </div>
         <button 
           onClick={openCreateModal}
-          className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-xs sm:text-sm font-medium hover:bg-indigo-700 transition-colors flex items-center gap-2 shadow-2xs shrink-0 cursor-pointer"
+          className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs sm:text-sm font-semibold hover:bg-indigo-700 transition-colors flex items-center gap-2 shadow-2xs shrink-0 cursor-pointer"
         >
           <Plus size={16} /> Ajouter un membre
         </button>
       </header>
 
-      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xs border border-gray-100 dark:border-gray-800 overflow-hidden">
         <div className="overflow-x-auto custom-scrollbar">
           <table className="w-full text-left border-collapse min-w-[650px]">
             <thead>
@@ -139,13 +185,15 @@ export function TeamTab() {
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <div className={clsx(
-                        "w-10 h-10 rounded-full border border-white dark:border-gray-900 shadow-sm flex items-center justify-center text-sm font-medium shrink-0",
+                        "w-10 h-10 rounded-full border border-white dark:border-gray-900 shadow-xs flex items-center justify-center text-sm font-medium shrink-0",
                         member.status === 'invité' ? "bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500" : "bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300"
                       )}>
                         {member.status === 'invité' ? <Mail size={16} /> : <User size={18} />}
                       </div>
                       <div>
-                        <div className={clsx("font-medium text-sm", member.status === 'invité' ? "text-gray-400 dark:text-gray-500 italic" : "text-gray-900 dark:text-white")}>{member.name}</div>
+                        <div className={clsx("font-medium text-sm", member.status === 'invité' ? "text-gray-400 dark:text-gray-500 italic" : "text-gray-900 dark:text-white")}>
+                          {member.name}
+                        </div>
                         <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1.5 mt-0.5">
                           <Mail size={12} /> {member.email}
                         </div>
@@ -194,26 +242,39 @@ export function TeamTab() {
                     {activeMenuId === member.id && (
                       <div 
                         ref={menuRef}
-                        className="absolute right-6 mt-2 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 py-1 z-50 text-left"
+                        className="absolute right-6 mt-2 w-52 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 py-1 z-50 text-left animate-in fade-in zoom-in-95"
                       >
-                        <button 
-                          onClick={() => openEditModal(member)}
-                          className="w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2"
-                        >
-                          Modifier le profil
-                        </button>
-                        <button 
-                          onClick={() => reassignTasks(member)}
-                          className="w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2"
-                        >
-                          Réassigner les tâches
-                        </button>
+                        {member.status === 'invité' ? (
+                          <button 
+                            onClick={() => copyInviteLinkForMember(member)}
+                            className="w-full px-4 py-2 text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 flex items-center gap-2 cursor-pointer"
+                          >
+                            {copiedMemberId === member.id ? <Check size={14} /> : <Link2 size={14} />}
+                            {copiedMemberId === member.id ? 'Lien copié !' : 'Copier le lien d\'invitation'}
+                          </button>
+                        ) : (
+                          <>
+                            <button 
+                              onClick={() => openEditModal(member)}
+                              className="w-full px-4 py-2 text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2 cursor-pointer"
+                            >
+                              <Edit3 size={14} /> Modifier le profil
+                            </button>
+                            <button 
+                              onClick={() => openReassignModal(member)}
+                              className="w-full px-4 py-2 text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2 cursor-pointer"
+                            >
+                              <RefreshCw size={14} /> Réassigner les tâches
+                            </button>
+                          </>
+                        )}
+                        
                         <div className="h-px bg-gray-100 dark:bg-gray-700 my-1"></div>
                         <button 
-                          onClick={() => deleteMember(member.id)}
-                          className="w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"
+                          onClick={() => handleDeleteMember(member.id)}
+                          className="w-full px-4 py-2 text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2 cursor-pointer"
                         >
-                          Retirer de l&apos;équipe
+                          <Trash2 size={14} /> Retirer de l&apos;équipe
                         </button>
                       </div>
                     )}
@@ -237,6 +298,15 @@ export function TeamTab() {
         handleManualCreate={handleManualCreate}
         handleInvite={handleInvite}
         editingMember={editingMember}
+      />
+
+      <ReassignModal
+        isOpen={isReassignModalOpen}
+        onClose={() => setIsReassignModalOpen(false)}
+        member={reassignMemberTarget}
+        teamMembers={team}
+        tasks={tasks}
+        onConfirmReassign={handleConfirmReassign}
       />
     </div>
   );

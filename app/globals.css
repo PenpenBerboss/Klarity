@@ -2,51 +2,134 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-@layer base {
-  :root {
-    --accent-50: #eef2ff;
-    --accent-100: #e0e7ff;
-    --accent-500: #6366f1;
-    --accent-600: #4f46e5;
-    --accent-700: #4338ca;
-  }
-
-  [data-accent="emerald"] {
-    --accent-50: #ecfdf5;
-    --accent-100: #d1fae5;
-    --accent-500: #10b981;
-    --accent-600: #059669;
-    --accent-700: #047857;
-  }
-
-  [data-accent="purple"] {
-    --accent-50: #faf5ff;
-    --accent-100: #f3e8ff;
-    --accent-500: #a855f7;
-    --accent-600: #9333ea;
-    --accent-700: #7e22ce;
-  }
-
-  [data-accent="amber"] {
-    --accent-50: #fffbeb;
-    --accent-100: #fef3c7;
-    --accent-500: #f59e0b;
-    --accent-600: #d97706;
-    --accent-700: #b45309;
-  }
+/* Font family & Typography setup */
+:root {
+  --font-sans: var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  
+  /* Accent Color Variables (Default: Indigo #4f46e5) */
+  --accent-primary: #4f46e5;
+  --accent-primary-hover: #4338ca;
+  --accent-primary-light: #eef2ff;
+  --accent-primary-dark-light: rgba(99, 102, 241, 0.15);
+  --accent-primary-text: #4f46e5;
+  --accent-primary-border: #818cf8;
+  --accent-ring: rgba(99, 102, 241, 0.25);
 }
 
-.custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+body {
+  font-family: var(--font-sans);
 }
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
+
+/* Accent Color Variations */
+[data-accent="indigo"], :root:not([data-accent]) {
+  --accent-primary: #4f46e5;
+  --accent-primary-hover: #4338ca;
+  --accent-primary-light: #eef2ff;
+  --accent-primary-dark-light: rgba(99, 102, 241, 0.15);
+  --accent-primary-text: #4f46e5;
+  --accent-primary-border: #818cf8;
+  --accent-ring: rgba(99, 102, 241, 0.25);
 }
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(156, 163, 175, 0.4);
-  border-radius: 9999px;
+
+[data-accent="emerald"] {
+  --accent-primary: #059669;
+  --accent-primary-hover: #047857;
+  --accent-primary-light: #ecfdf5;
+  --accent-primary-dark-light: rgba(16, 185, 129, 0.15);
+  --accent-primary-text: #059669;
+  --accent-primary-border: #34d399;
+  --accent-ring: rgba(16, 185, 129, 0.25);
 }
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(156, 163, 175, 0.6);
+
+[data-accent="purple"] {
+  --accent-primary: #9333ea;
+  --accent-primary-hover: #7e22ce;
+  --accent-primary-light: #faf5ff;
+  --accent-primary-dark-light: rgba(147, 51, 234, 0.15);
+  --accent-primary-text: #9333ea;
+  --accent-primary-border: #c084fc;
+  --accent-ring: rgba(147, 51, 234, 0.25);
+}
+
+[data-accent="amber"] {
+  --accent-primary: #d97706;
+  --accent-primary-hover: #b45309;
+  --accent-primary-light: #fffbeb;
+  --accent-primary-dark-light: rgba(217, 119, 6, 0.15);
+  --accent-primary-text: #d97706;
+  --accent-primary-border: #fbbf24;
+  --accent-ring: rgba(217, 119, 6, 0.25);
+}
+
+[data-accent="blue"] {
+  --accent-primary: #2563eb;
+  --accent-primary-hover: #1d4ed8;
+  --accent-primary-light: #eff6ff;
+  --accent-primary-dark-light: rgba(37, 99, 235, 0.15);
+  --accent-primary-text: #2563eb;
+  --accent-primary-border: #60a5fa;
+  --accent-ring: rgba(37, 99, 235, 0.25);
+}
+
+/* Dynamic cascade so chosen accent color works immediately and consistently across the UI */
+[data-accent="emerald"] .bg-indigo-600,
+[data-accent="emerald"] .bg-indigo-500 { background-color: var(--accent-primary) !important; }
+[data-accent="emerald"] .hover\:bg-indigo-700:hover,
+[data-accent="emerald"] .hover\:bg-indigo-600:hover { background-color: var(--accent-primary-hover) !important; }
+[data-accent="emerald"] .text-indigo-600,
+[data-accent="emerald"] .text-indigo-700 { color: var(--accent-primary-text) !important; }
+[data-accent="emerald"] .bg-indigo-50 { background-color: var(--accent-primary-light) !important; }
+[data-accent="emerald"] .border-indigo-600,
+[data-accent="emerald"] .border-indigo-500,
+[data-accent="emerald"] .border-indigo-200 { border-color: var(--accent-primary-border) !important; }
+
+[data-accent="purple"] .bg-indigo-600,
+[data-accent="purple"] .bg-indigo-500 { background-color: var(--accent-primary) !important; }
+[data-accent="purple"] .hover\:bg-indigo-700:hover,
+[data-accent="purple"] .hover\:bg-indigo-600:hover { background-color: var(--accent-primary-hover) !important; }
+[data-accent="purple"] .text-indigo-600,
+[data-accent="purple"] .text-indigo-700 { color: var(--accent-primary-text) !important; }
+[data-accent="purple"] .bg-indigo-50 { background-color: var(--accent-primary-light) !important; }
+[data-accent="purple"] .border-indigo-600,
+[data-accent="purple"] .border-indigo-500,
+[data-accent="purple"] .border-indigo-200 { border-color: var(--accent-primary-border) !important; }
+
+[data-accent="amber"] .bg-indigo-600,
+[data-accent="amber"] .bg-indigo-500 { background-color: var(--accent-primary) !important; }
+[data-accent="amber"] .hover\:bg-indigo-700:hover,
+[data-accent="amber"] .hover\:bg-indigo-600:hover { background-color: var(--accent-primary-hover) !important; }
+[data-accent="amber"] .text-indigo-600,
+[data-accent="amber"] .text-indigo-700 { color: var(--accent-primary-text) !important; }
+[data-accent="amber"] .bg-indigo-50 { background-color: var(--accent-primary-light) !important; }
+[data-accent="amber"] .border-indigo-600,
+[data-accent="amber"] .border-indigo-500,
+[data-accent="amber"] .border-indigo-200 { border-color: var(--accent-primary-border) !important; }
+
+[data-accent="blue"] .bg-indigo-600,
+[data-accent="blue"] .bg-indigo-500 { background-color: var(--accent-primary) !important; }
+[data-accent="blue"] .hover\:bg-indigo-700:hover,
+[data-accent="blue"] .hover\:bg-indigo-600:hover { background-color: var(--accent-primary-hover) !important; }
+[data-accent="blue"] .text-indigo-600,
+[data-accent="blue"] .text-indigo-700 { color: var(--accent-primary-text) !important; }
+[data-accent="blue"] .bg-indigo-50 { background-color: var(--accent-primary-light) !important; }
+[data-accent="blue"] .border-indigo-600,
+[data-accent="blue"] .border-indigo-500,
+[data-accent="blue"] .border-indigo-200 { border-color: var(--accent-primary-border) !important; }
+
+@layer utilities {
+  /* Custom scrollbar styles */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(156, 163, 175, 0.4);
+    border-radius: 9999px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(107, 114, 128, 0.6);
+  }
 }

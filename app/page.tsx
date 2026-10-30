@@ -10,6 +10,7 @@ import { TasksTab } from '@/components/tabs/tasks-tab';
 import { ReportsTab } from '@/components/tabs/reports-tab';
 import { TeamTab } from '@/components/tabs/team-tab';
 import { SettingsTab } from '@/components/tabs/settings-tab';
+import { TutorialTab } from '@/components/tabs/tutorial-tab';
 
 export default function Dashboard() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -28,6 +29,7 @@ export default function Dashboard() {
       case 'tasks': return <TasksTab />;
       case 'reports': return <ReportsTab />;
       case 'team': return <TeamTab />;
+      case 'tutorial': return <TutorialTab />;
       case 'settings': return <SettingsTab />;
       default: return <DashboardTab />;
     }

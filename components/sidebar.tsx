@@ -1,7 +1,7 @@
 import React from 'react';
 import { 
   PieChart, FolderOpen, ListTodo, TrendingUp, 
-  Users2, Settings, ChevronLeft, ChevronRight 
+  Users2, Settings, ChevronLeft, ChevronRight, BookOpen
 } from 'lucide-react';
 import { clsx } from 'clsx';
 
@@ -12,6 +12,7 @@ export function Sidebar({ isOpen, setIsOpen, activeTab, setActiveTab }: { isOpen
     { id: 'tasks', icon: ListTodo, label: 'Tâches' },
     { id: 'reports', icon: TrendingUp, label: 'Rapports' },
     { id: 'team', icon: Users2, label: 'Équipe' },
+    { id: 'tutorial', icon: BookOpen, label: 'Tutoriel & Guide' },
   ];
 
   const handleSelectTab = (id: string) => {
