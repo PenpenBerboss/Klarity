@@ -12,7 +12,8 @@ export function TeamModal({
   inviteUser,
   setInviteUser,
   handleManualCreate,
-  handleInvite
+  handleInvite,
+  editingMember
 }: {
   isModalOpen: boolean,
   setIsModalOpen: (v: boolean) => void,
@@ -23,7 +24,8 @@ export function TeamModal({
   inviteUser: any,
   setInviteUser: (u: any) => void,
   handleManualCreate: (e: React.FormEvent) => void,
-  handleInvite: (e: React.FormEvent) => void
+  handleInvite: (e: React.FormEvent) => void,
+  editingMember: any | null
 }) {
   if (!isModalOpen) return null;
 
@@ -31,36 +33,40 @@ export function TeamModal({
     <div className="fixed inset-0 bg-black/20 dark:bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200 border border-transparent dark:border-gray-800">
         <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center bg-gray-50/50 dark:bg-gray-800/50">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Ajouter un membre</h2>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+            {editingMember ? 'Modifier le profil' : 'Ajouter un membre'}
+          </h2>
           <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800">
             <X size={20} />
           </button>
         </div>
         
         <div className="p-6">
-          {/* Tabs */}
-          <div className="flex p-1 bg-gray-100 dark:bg-gray-800 rounded-lg mb-6">
-            <button 
-              onClick={() => setModalMode('manual')}
-              className={clsx(
-                "flex-1 py-1.5 text-sm font-medium rounded-md transition-all flex items-center justify-center gap-2",
-                modalMode === 'manual' ? "bg-white dark:bg-gray-900 text-indigo-600 dark:text-indigo-400 shadow-sm" : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
-              )}
-            >
-              <UserPlus size={16} /> Créer manuellement
-            </button>
-            <button 
-              onClick={() => setModalMode('invite')}
-              className={clsx(
-                "flex-1 py-1.5 text-sm font-medium rounded-md transition-all flex items-center justify-center gap-2",
-                modalMode === 'invite' ? "bg-white dark:bg-gray-900 text-indigo-600 dark:text-indigo-400 shadow-sm" : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
-              )}
-            >
-              <Send size={16} /> Inviter par email
-            </button>
-          </div>
+          {/* Tabs - Only show if not editing */}
+          {!editingMember && (
+            <div className="flex p-1 bg-gray-100 dark:bg-gray-800 rounded-lg mb-6">
+              <button 
+                onClick={() => setModalMode('manual')}
+                className={clsx(
+                  "flex-1 py-1.5 text-sm font-medium rounded-md transition-all flex items-center justify-center gap-2",
+                  modalMode === 'manual' ? "bg-white dark:bg-gray-900 text-indigo-600 dark:text-indigo-400 shadow-sm" : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
+                )}
+              >
+                <UserPlus size={16} /> Créer manuellement
+              </button>
+              <button 
+                onClick={() => setModalMode('invite')}
+                className={clsx(
+                  "flex-1 py-1.5 text-sm font-medium rounded-md transition-all flex items-center justify-center gap-2",
+                  modalMode === 'invite' ? "bg-white dark:bg-gray-900 text-indigo-600 dark:text-indigo-400 shadow-sm" : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
+                )}
+              >
+                <Send size={16} /> Inviter par email
+              </button>
+            </div>
+          )}
 
-          {modalMode === 'manual' ? (
+          {(modalMode === 'manual' || editingMember) ? (
             <form onSubmit={handleManualCreate} className="space-y-4">
               <div className="space-y-1.5">
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Nom complet</label>
@@ -105,7 +111,7 @@ export function TeamModal({
                   Annuler
                 </button>
                 <button type="submit" className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors shadow-sm">
-                  Créer l&apos;utilisateur
+                  {editingMember ? 'Enregistrer' : 'Créer l\'utilisateur'}
                 </button>
               </div>
             </form>

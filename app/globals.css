@@ -1,1 +1,52 @@
 @import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  :root {
+    --accent-50: #eef2ff;
+    --accent-100: #e0e7ff;
+    --accent-500: #6366f1;
+    --accent-600: #4f46e5;
+    --accent-700: #4338ca;
+  }
+
+  [data-accent="emerald"] {
+    --accent-50: #ecfdf5;
+    --accent-100: #d1fae5;
+    --accent-500: #10b981;
+    --accent-600: #059669;
+    --accent-700: #047857;
+  }
+
+  [data-accent="purple"] {
+    --accent-50: #faf5ff;
+    --accent-100: #f3e8ff;
+    --accent-500: #a855f7;
+    --accent-600: #9333ea;
+    --accent-700: #7e22ce;
+  }
+
+  [data-accent="amber"] {
+    --accent-50: #fffbeb;
+    --accent-100: #fef3c7;
+    --accent-500: #f59e0b;
+    --accent-600: #d97706;
+    --accent-700: #b45309;
+  }
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.4);
+  border-radius: 9999px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(156, 163, 175, 0.6);
+}

@@ -6,21 +6,31 @@ export function ProjectModal({
   setIsModalOpen,
   newProject,
   setNewProject,
-  handleCreateProject
+  handleCreateProject,
+  editingProject
 }: {
   isModalOpen: boolean,
   setIsModalOpen: (v: boolean) => void,
   newProject: any,
   setNewProject: (p: any) => void,
-  handleCreateProject: (e: React.FormEvent) => void
+  handleCreateProject: (e: React.FormEvent) => void,
+  editingProject: any | null
 }) {
   if (!isModalOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/20 dark:bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200 border border-transparent dark:border-gray-800">
+    <div 
+      className="fixed inset-0 bg-black/20 dark:bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 cursor-pointer"
+      onClick={() => setIsModalOpen(false)}
+    >
+      <div 
+        className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200 border border-transparent dark:border-gray-800 cursor-default"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center bg-gray-50/50 dark:bg-gray-800/50">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Nouveau Projet</h2>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+            {editingProject ? 'Modifier le Projet' : 'Nouveau Projet'}
+          </h2>
           <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800">
             <X size={20} />
           </button>
@@ -115,6 +125,19 @@ export function ProjectModal({
             </div>
           </div>
 
+          {!editingProject && (
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Jalons initiaux (Séparés par des virgules)</label>
+              <textarea 
+                value={newProject.milestonesText || ''} 
+                onChange={e => setNewProject({...newProject, milestonesText: e.target.value})} 
+                className="w-full px-3 py-2 bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 dark:text-white dark:placeholder-gray-500"
+                placeholder="Ex: Analyse, Design, Développement"
+                rows={2}
+              />
+            </div>
+          )}
+
           <div className="pt-4 flex justify-end gap-3 border-t border-gray-100 dark:border-gray-800">
             <button 
               type="button" 
@@ -127,7 +150,7 @@ export function ProjectModal({
               type="submit" 
               className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors shadow-sm"
             >
-              Créer le projet
+              {editingProject ? 'Enregistrer les modifications' : 'Créer le projet'}
             </button>
           </div>
         </form>

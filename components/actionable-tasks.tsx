@@ -19,18 +19,18 @@ interface Task {
 const initialTasks: Task[] = [
   {
     id: "TSK-842",
-    title: "Validation API de paiement",
+    title: "Validation API de paiement Mobile Money",
     project: "Refonte ERP",
-    assignee: "Alex M.",
+    assignee: "Samuel Mbarga",
     status: "blocked",
-    reason: "Attente retour prestataire",
+    reason: "Attente retour partenaire Orange/MTN",
     impact: "Chemin critique impacté (+2j)"
   },
   {
     id: "TSK-890",
     title: "Design System V2",
     project: "App Mobile",
-    assignee: "Sarah K.",
+    assignee: "Chantal Abena",
     status: "delayed",
     reason: "Surcharge de travail détectée",
     impact: "Risque sur le sprint actuel"
@@ -39,14 +39,14 @@ const initialTasks: Task[] = [
     id: "TSK-901",
     title: "Migration DB Prod",
     project: "Migration Cloud",
-    assignee: "Thomas L.",
+    assignee: "Emmanuel Nguema",
     status: "warning",
     reason: "Budget infrastructure > 90%",
     impact: "Alerte financière"
   }
 ];
 
-const teamMembers = ["Alex M.", "Sarah K.", "Thomas L.", "Marie D.", "Jean P."];
+const teamMembers = ["Samuel Mbarga", "Chantal Abena", "Emmanuel Nguema", "Nathalie Ekotto", "Dieudonné Tchato"];
 const projects = ["Refonte ERP", "App Mobile", "Migration Cloud", "Site Web", "CRM V2"];
 
 export function ActionableTasks() {

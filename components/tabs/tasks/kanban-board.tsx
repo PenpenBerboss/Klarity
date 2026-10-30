@@ -1,6 +1,49 @@
-import React from 'react';
-import { MoreHorizontal, Plus, Trash2, Edit2, User, Tag, Link2 } from 'lucide-react';
+"use client";
+
+import React, { useState } from 'react';
+import { MoreHorizontal, Plus, Trash2, Edit2, User, Tag, Link2, Copy, ArrowRight, Flag, CheckSquare } from 'lucide-react';
 import { clsx } from 'clsx';
+import { DeadlineTimerBadge } from '../../deadline-timer-badge';
+
+interface Task {
+  id: string;
+  title: string;
+  project: string;
+  assignee: string;
+  status: string;
+  priority: string;
+  dueDate: string;
+  dependencies?: string[];
+  subtasks?: { id: string; title: string; completed: boolean }[];
+  sprintId?: string | null;
+}
+
+interface Column {
+  id: string;
+  title: string;
+}
+
+interface KanbanBoardProps {
+  initialColumns: Column[];
+  filteredTasks: Task[];
+  activeColumnId: string | null;
+  draggedTaskId: string | null;
+  handleDragOver: (e: React.DragEvent, columnId: string) => void;
+  handleDragLeave: (e: React.DragEvent, columnId: string) => void;
+  handleDrop: (e: React.DragEvent, columnId: string) => void;
+  handleDragStart: (e: React.DragEvent, taskId: string) => void;
+  handleDragEnd: () => void;
+  activeMenuId: string | null;
+  setActiveMenuId: (id: string | null) => void;
+  menuRef: React.RefObject<HTMLDivElement | null>;
+  openEditModal: (task: Task) => void;
+  deleteTask: (id: string) => void;
+  duplicateTask: (task: Task) => void;
+  updateTaskStatus: (taskId: string, newStatus: string) => void;
+  updateTaskPriority: (taskId: string, newPriority: string) => void;
+  updateTaskAssignee: (taskId: string, newAssignee: string) => void;
+  teamMembers: string[];
+}
 
 export function KanbanBoard({
   initialColumns,
@@ -16,25 +59,23 @@ export function KanbanBoard({
   setActiveMenuId,
   menuRef,
   openEditModal,
-  deleteTask
-}: {
-  initialColumns: any[],
-  filteredTasks: any[],
-  activeColumnId: string | null,
-  draggedTaskId: string | null,
-  handleDragOver: (e: React.DragEvent, columnId: string) => void,
-  handleDragLeave: (e: React.DragEvent, columnId: string) => void,
-  handleDrop: (e: React.DragEvent, columnId: string) => void,
-  handleDragStart: (e: React.DragEvent, taskId: string) => void,
-  handleDragEnd: () => void,
-  activeMenuId: string | null,
-  setActiveMenuId: (id: string | null) => void,
-  menuRef: React.RefObject<HTMLDivElement | null>,
-  openEditModal: (task: any) => void,
-  deleteTask: (id: string) => void
-}) {
+  deleteTask,
+  duplicateTask,
+  updateTaskStatus,
+  updateTaskPriority,
+  updateTaskAssignee,
+  teamMembers
+}: KanbanBoardProps) {
+  const [activeSubMenu, setActiveSubMenu] = useState<'status' | 'priority' | 'assignee' | null>(null);
+
+  const priorityLabels: Record<string, { label: string; color: string }> = {
+    critical: { label: 'Critique', color: 'bg-red-500 text-white' },
+    high: { label: 'Haute', color: 'bg-amber-500 text-white' },
+    medium: { label: 'Moyenne', color: 'bg-blue-500 text-white' },
+  };
+
   return (
-    <div className="flex-1 flex gap-6 overflow-x-auto pb-4">
+    <div className="flex-1 flex gap-6 overflow-x-auto pb-6 custom-scrollbar">
       {initialColumns.map(col => {
         const columnTasks = filteredTasks.filter(t => t.status === col.id);
         const isActive = activeColumnId === col.id;
@@ -43,23 +84,39 @@ export function KanbanBoard({
           <div 
             key={col.id} 
             className={clsx(
-              "flex-shrink-0 w-96 flex flex-col rounded-2xl border p-5 transition-colors duration-200",
-              isActive ? "bg-indigo-50/60 dark:bg-indigo-500/10 border-indigo-300 dark:border-indigo-500/30 border-dashed" : "bg-gray-50/50 dark:bg-gray-800/30 border-gray-100 dark:border-gray-800"
+              "flex-shrink-0 w-88 lg:w-96 flex flex-col rounded-2xl border p-4 transition-colors duration-200",
+              isActive 
+                ? "bg-indigo-50/60 dark:bg-indigo-500/10 border-indigo-300 dark:border-indigo-500/30 border-dashed" 
+                : "bg-gray-50/60 dark:bg-gray-900/40 border-gray-200/80 dark:border-gray-800"
             )}
             onDragOver={(e) => handleDragOver(e, col.id)}
             onDragLeave={(e) => handleDragLeave(e, col.id)}
             onDrop={(e) => handleDrop(e, col.id)}
           >
-            <div className="flex justify-between items-center mb-5 px-1">
-              <h3 className={clsx("font-medium flex items-center gap-2 transition-colors", isActive ? "text-indigo-900 dark:text-indigo-300" : "text-gray-900 dark:text-gray-100")}>
-                {col.title} <span className={clsx("text-xs px-2 py-0.5 rounded-full transition-colors", isActive ? "bg-indigo-200 dark:bg-indigo-500/20 text-indigo-800 dark:text-indigo-300" : "bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400")}>{columnTasks.length}</span>
+            {/* Column Header */}
+            <div className="flex justify-between items-center mb-4 px-1">
+              <h3 className={clsx(
+                "font-semibold text-sm flex items-center gap-2 transition-colors",
+                isActive ? "text-indigo-900 dark:text-indigo-300" : "text-gray-900 dark:text-gray-100"
+              )}>
+                <span>{col.title}</span>
+                <span className={clsx(
+                  "text-xs px-2 py-0.5 rounded-full font-medium transition-colors",
+                  isActive ? "bg-indigo-200 dark:bg-indigo-500/20 text-indigo-800 dark:text-indigo-300" : "bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+                )}>
+                  {columnTasks.length}
+                </span>
               </h3>
-              <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"><MoreHorizontal size={20} /></button>
             </div>
             
-            <div className="flex-1 space-y-4 overflow-y-auto min-h-[150px] custom-scrollbar pr-1">
+            {/* Column Content */}
+            <div className="flex-1 space-y-3.5 overflow-y-auto min-h-[160px] custom-scrollbar pr-1">
               {columnTasks.map(task => {
                 const isDragging = draggedTaskId === task.id;
+                const isMenuOpen = activeMenuId === task.id;
+                const completedSubtasks = task.subtasks ? task.subtasks.filter(s => s.completed).length : 0;
+                const totalSubtasks = task.subtasks ? task.subtasks.length : 0;
+
                 return (
                   <div 
                     key={task.id} 
@@ -67,62 +124,252 @@ export function KanbanBoard({
                     onDragStart={(e) => handleDragStart(e, task.id)}
                     onDragEnd={handleDragEnd}
                     className={clsx(
-                      "group relative bg-white dark:bg-gray-900 p-5 rounded-xl border hover:shadow-[0_4px_12px_rgba(0,0,0,0.05)] dark:hover:shadow-[0_4px_12px_rgba(0,0,0,0.2)] hover:-translate-y-0.5 transition-all duration-200 cursor-grab active:cursor-grabbing min-h-[130px] flex flex-col",
-                      isDragging ? "opacity-40 scale-95 border-indigo-300 dark:border-indigo-500/50 shadow-none" : "opacity-100 border-gray-100 dark:border-gray-800 hover:border-indigo-200 dark:hover:border-indigo-500/30"
+                      "group relative bg-white dark:bg-gray-900 p-4 rounded-xl border hover:shadow-md transition-all duration-200 cursor-grab active:cursor-grabbing min-h-[130px] flex flex-col justify-between",
+                      isMenuOpen ? "z-40 border-indigo-400 dark:border-indigo-500 shadow-lg" : "z-10 border-gray-200/80 dark:border-gray-800 hover:border-indigo-200 dark:hover:border-indigo-500/30",
+                      isDragging && "opacity-40 scale-95 border-indigo-400 shadow-none"
                     )}
                   >
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); setActiveMenuId(activeMenuId === task.id ? null : task.id); }}
-                      className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 p-2 text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-all"
-                    >
-                      <MoreHorizontal size={16} />
-                    </button>
+                    {/* Card Top Header */}
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-xs font-mono font-medium text-gray-400 dark:text-gray-500">{task.id}</span>
+                        <DeadlineTimerBadge dueDate={task.dueDate} status={task.status} />
+                      </div>
 
-                    {activeMenuId === task.id && (
-                      <div ref={menuRef} className="absolute top-12 right-3 w-48 bg-white dark:bg-gray-900 rounded-xl shadow-lg border border-gray-100 dark:border-gray-800 py-1 z-10 text-sm">
-                        <button onClick={() => openEditModal(task)} className="w-full text-left px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                          <Edit2 size={14} className="text-gray-400" /> Modifier
+                      {/* 3-Dots Action Button */}
+                      <div className="relative">
+                        <button 
+                          onClick={(e) => { 
+                            e.stopPropagation(); 
+                            setActiveSubMenu(null);
+                            setActiveMenuId(isMenuOpen ? null : task.id); 
+                          }}
+                          className={clsx(
+                            "p-1.5 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors cursor-pointer",
+                            isMenuOpen && "text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-800"
+                          )}
+                          title="Actions de la tâche"
+                        >
+                          <MoreHorizontal size={16} />
                         </button>
-                        <button onClick={() => openEditModal(task)} className="w-full text-left px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                          <User size={14} className="text-gray-400" /> Changer l&apos;assigné
-                        </button>
-                        <button onClick={() => openEditModal(task)} className="w-full text-left px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                          <Tag size={14} className="text-gray-400" /> Modifier les labels
-                        </button>
-                        <div className="h-px bg-gray-100 dark:bg-gray-800 my-1"></div>
-                        <button onClick={() => deleteTask(task.id)} className="w-full text-left px-4 py-2 hover:bg-red-50 dark:hover:bg-red-500/10 text-red-600 dark:text-red-400 flex items-center gap-2">
-                          <Trash2 size={14} /> Supprimer
-                        </button>
+
+                        {/* Dropdown Menu - Elevate with z-50 */}
+                        {isMenuOpen && (
+                          <div 
+                            ref={menuRef} 
+                            onClick={(e) => e.stopPropagation()}
+                            className="absolute right-0 top-8 w-56 bg-white dark:bg-gray-900 rounded-xl shadow-xl border border-gray-200 dark:border-gray-800 py-1.5 z-50 text-xs text-gray-700 dark:text-gray-200 animate-in fade-in zoom-in-95 duration-100"
+                          >
+                            <div className="px-3 py-1 text-[10px] font-semibold tracking-wider text-gray-400 dark:text-gray-500 uppercase border-b border-gray-100 dark:border-gray-800 mb-1">
+                              Actions rapides
+                            </div>
+
+                            <button 
+                              onClick={() => { openEditModal(task); setActiveMenuId(null); }} 
+                              className="w-full text-left px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center gap-2.5 transition-colors cursor-pointer"
+                            >
+                              <Edit2 size={14} className="text-indigo-500" />
+                              <span>Modifier la tâche</span>
+                            </button>
+
+                            <button 
+                              onClick={() => { duplicateTask(task); setActiveMenuId(null); }} 
+                              className="w-full text-left px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center gap-2.5 transition-colors cursor-pointer"
+                            >
+                              <Copy size={14} className="text-emerald-500" />
+                              <span>Dupliquer la tâche</span>
+                            </button>
+
+                            {/* Submenu Trigger: Status */}
+                            <div className="relative">
+                              <button 
+                                onClick={() => setActiveSubMenu(activeSubMenu === 'status' ? null : 'status')}
+                                className="w-full text-left px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center justify-between transition-colors cursor-pointer"
+                              >
+                                <span className="flex items-center gap-2.5">
+                                  <ArrowRight size={14} className="text-blue-500" />
+                                  <span>Changer statut</span>
+                                </span>
+                                <span className="text-[10px] text-gray-400">›</span>
+                              </button>
+
+                              {activeSubMenu === 'status' && (
+                                <div className="bg-gray-50 dark:bg-gray-800/80 p-1 mx-2 rounded-lg my-1 space-y-0.5">
+                                  {initialColumns.map(c => (
+                                    <button
+                                      key={c.id}
+                                      onClick={() => {
+                                        updateTaskStatus(task.id, c.id);
+                                        setActiveMenuId(null);
+                                      }}
+                                      className={clsx(
+                                        "w-full text-left px-2.5 py-1.5 rounded text-[11px] flex items-center justify-between cursor-pointer",
+                                        task.status === c.id ? "font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40" : "hover:bg-gray-200/60 dark:hover:bg-gray-700/60 text-gray-600 dark:text-gray-300"
+                                      )}
+                                    >
+                                      <span>{c.title}</span>
+                                      {task.status === c.id && <span className="text-indigo-600 dark:text-indigo-400">✓</span>}
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Submenu Trigger: Priority */}
+                            <div className="relative">
+                              <button 
+                                onClick={() => setActiveSubMenu(activeSubMenu === 'priority' ? null : 'priority')}
+                                className="w-full text-left px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center justify-between transition-colors cursor-pointer"
+                              >
+                                <span className="flex items-center gap-2.5">
+                                  <Flag size={14} className="text-amber-500" />
+                                  <span>Changer priorité</span>
+                                </span>
+                                <span className="text-[10px] text-gray-400">›</span>
+                              </button>
+
+                              {activeSubMenu === 'priority' && (
+                                <div className="bg-gray-50 dark:bg-gray-800/80 p-1 mx-2 rounded-lg my-1 space-y-0.5">
+                                  {[
+                                    { id: 'critical', label: 'Critique', color: 'text-red-600 dark:text-red-400' },
+                                    { id: 'high', label: 'Haute', color: 'text-amber-600 dark:text-amber-400' },
+                                    { id: 'medium', label: 'Moyenne', color: 'text-blue-600 dark:text-blue-400' },
+                                  ].map(p => (
+                                    <button
+                                      key={p.id}
+                                      onClick={() => {
+                                        updateTaskPriority(task.id, p.id);
+                                        setActiveMenuId(null);
+                                      }}
+                                      className={clsx(
+                                        "w-full text-left px-2.5 py-1.5 rounded text-[11px] flex items-center justify-between cursor-pointer",
+                                        task.priority === p.id ? "font-semibold bg-gray-200/80 dark:bg-gray-700" : "hover:bg-gray-200/60 dark:hover:bg-gray-700/60"
+                                      )}
+                                    >
+                                      <span className={p.color}>{p.label}</span>
+                                      {task.priority === p.id && <span>✓</span>}
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Submenu Trigger: Assignee */}
+                            <div className="relative">
+                              <button 
+                                onClick={() => setActiveSubMenu(activeSubMenu === 'assignee' ? null : 'assignee')}
+                                className="w-full text-left px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center justify-between transition-colors cursor-pointer"
+                              >
+                                <span className="flex items-center gap-2.5">
+                                  <User size={14} className="text-purple-500" />
+                                  <span>Re-assigner</span>
+                                </span>
+                                <span className="text-[10px] text-gray-400">›</span>
+                              </button>
+
+                              {activeSubMenu === 'assignee' && (
+                                <div className="bg-gray-50 dark:bg-gray-800/80 p-1 mx-2 rounded-lg my-1 space-y-0.5 max-h-36 overflow-y-auto custom-scrollbar">
+                                  {teamMembers.map(m => (
+                                    <button
+                                      key={m}
+                                      onClick={() => {
+                                        updateTaskAssignee(task.id, m);
+                                        setActiveMenuId(null);
+                                      }}
+                                      className={clsx(
+                                        "w-full text-left px-2 py-1 rounded text-[11px] truncate cursor-pointer",
+                                        task.assignee === m ? "font-semibold text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/40" : "hover:bg-gray-200/60 dark:hover:bg-gray-700/60 text-gray-600 dark:text-gray-300"
+                                      )}
+                                    >
+                                      {m}
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="h-px bg-gray-100 dark:bg-gray-800 my-1"></div>
+
+                            <button 
+                              onClick={() => { deleteTask(task.id); setActiveMenuId(null); }} 
+                              className="w-full text-left px-3 py-2 hover:bg-red-50 dark:hover:bg-red-500/10 text-red-600 dark:text-red-400 flex items-center gap-2.5 transition-colors cursor-pointer"
+                            >
+                              <Trash2 size={14} />
+                              <span>Supprimer la tâche</span>
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Task Title */}
+                    <h4 className="text-sm font-semibold text-gray-900 dark:text-white my-2 leading-snug hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer" onClick={() => openEditModal(task)}>
+                      {task.title}
+                    </h4>
+
+                    {/* Subtasks Progress Bar if present */}
+                    {totalSubtasks > 0 && (
+                      <div className="my-2 bg-gray-50 dark:bg-gray-800/60 p-2 rounded-lg border border-gray-100 dark:border-gray-800">
+                        <div className="flex justify-between items-center text-[11px] text-gray-500 dark:text-gray-400 mb-1">
+                          <span className="flex items-center gap-1 font-medium">
+                            <CheckSquare size={12} className="text-indigo-500" />
+                            Sous-tâches
+                          </span>
+                          <span>{completedSubtasks}/{totalSubtasks}</span>
+                        </div>
+                        <div className="w-full h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-indigo-600 dark:bg-indigo-500 rounded-full transition-all duration-300"
+                            style={{ width: `${(completedSubtasks / totalSubtasks) * 100}%` }}
+                          />
+                        </div>
                       </div>
                     )}
 
-                    <div className="flex justify-between items-start mb-3 pr-6">
-                      <span className="text-xs font-mono text-gray-400 dark:text-gray-500">{task.id}</span>
-                      <span className={clsx(
-                        "w-2.5 h-2.5 rounded-full",
-                        task.priority === 'critical' ? 'bg-red-500' : task.priority === 'high' ? 'bg-orange-500' : 'bg-blue-500'
-                      )} title={`Priorité: ${task.priority}`}></span>
-                    </div>
-                    <h4 className="text-base font-medium text-gray-900 dark:text-white mb-4 leading-snug">{task.title}</h4>
-                    <div className="flex justify-between items-center mt-auto">
+                    {/* Card Footer Info */}
+                    <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-gray-100 dark:border-gray-800/80">
                       <div className="flex gap-2 items-center">
-                        <span className="text-xs px-2.5 py-1 bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-md border border-gray-100 dark:border-gray-700">{task.project}</span>
+                        <span className="text-[11px] font-medium px-2 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-md border border-gray-200/50 dark:border-gray-700">
+                          {task.project}
+                        </span>
+
+                        {task.priority && (
+                          <span className={clsx(
+                            "text-[10px] font-semibold px-2 py-0.5 rounded-md",
+                            priorityLabels[task.priority]?.color || "bg-gray-200 text-gray-700"
+                          )}>
+                            {priorityLabels[task.priority]?.label || task.priority}
+                          </span>
+                        )}
+
                         {task.dependencies && task.dependencies.length > 0 && (
-                          <span className="text-xs px-2 py-1 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 rounded-md border border-amber-100 dark:border-amber-500/20 flex items-center gap-1.5" title={`Dépend de: ${task.dependencies.join(', ')}`}>
-                            <Link2 size={12} />
+                          <span className="text-[10px] px-1.5 py-0.5 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 rounded-md border border-amber-200/60 dark:border-amber-500/20 flex items-center gap-1" title={`Dépend de: ${task.dependencies.join(', ')}`}>
+                            <Link2 size={11} />
                             {task.dependencies.length}
                           </span>
                         )}
                       </div>
-                      <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-indigo-100 to-indigo-200 dark:from-indigo-500/20 dark:to-indigo-500/30 border border-white dark:border-gray-900 shadow-sm flex items-center justify-center text-xs font-medium text-indigo-700 dark:text-indigo-300" title={task.assignee}>
-                        {task.assignee.split(' ').map((n: string) => n[0]).join('')}
+
+                      {/* Assignee Avatar Badge */}
+                      <div className="flex items-center gap-1.5 bg-indigo-50 dark:bg-indigo-950/40 px-2 py-1 rounded-lg border border-indigo-100 dark:border-indigo-900/50" title={`Assigné à: ${task.assignee}`}>
+                        <div className="w-4 h-4 rounded-full bg-indigo-600 text-white flex items-center justify-center text-[9px] font-bold">
+                          {task.assignee ? task.assignee.charAt(0) : <User size={10} />}
+                        </div>
+                        <span className="text-[11px] font-medium text-indigo-700 dark:text-indigo-300 truncate max-w-[80px]">
+                          {task.assignee ? task.assignee.split(' ')[0] : 'Inconnu'}
+                        </span>
                       </div>
                     </div>
                   </div>
                 );
               })}
-              <button className="w-full py-4 flex items-center justify-center gap-2 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors border border-dashed border-gray-200 dark:border-gray-700">
-                <Plus size={16} /> Ajouter une tâche
+
+              {/* Add Task Quick Button */}
+              <button 
+                onClick={() => openEditModal({ id: '', title: '', project: 'Refonte ERP', assignee: teamMembers[0] || '', status: col.id, priority: 'medium', dueDate: new Date().toISOString().split('T')[0] })}
+                className="w-full py-2.5 flex items-center justify-center gap-2 text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50/50 dark:hover:bg-indigo-950/30 rounded-xl transition-all border border-dashed border-gray-300 dark:border-gray-700 cursor-pointer"
+              >
+                <Plus size={14} /> Ajouter une tâche
               </button>
             </div>
           </div>

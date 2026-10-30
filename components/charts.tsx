@@ -16,10 +16,10 @@ const projectData = [
 ];
 
 export function ProjectHealthChart() {
-  const { theme } = useTheme();
-  const isDark = theme === 'dark';
+  const { theme, resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === 'dark' || theme === 'dark';
   const gridColor = isDark ? '#374151' : '#f0f0f0';
-  const textColor = isDark ? '#9ca3af' : '#888';
+  const textColor = isDark ? '#9ca3af' : '#6b7280';
   const tooltipBg = isDark ? '#1f2937' : '#ffffff';
   const tooltipBorder = isDark ? '#374151' : '#e5e7eb';
   const tooltipText = isDark ? '#f3f4f6' : '#111827';
@@ -34,7 +34,7 @@ export function ProjectHealthChart() {
           <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: textColor }} />
           <Tooltip 
             cursor={{ fill: cursorFill }}
-            contentStyle={{ backgroundColor: tooltipBg, borderColor: tooltipBorder, color: tooltipText, borderRadius: '12px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}
+            contentStyle={{ backgroundColor: tooltipBg, borderColor: tooltipBorder, color: tooltipText, borderRadius: '12px', boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }}
             itemStyle={{ color: tooltipText }}
           />
           <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', paddingTop: '20px', color: textColor }} />
@@ -55,10 +55,10 @@ const workloadData = [
 ];
 
 export function TeamWorkloadChart() {
-  const { theme } = useTheme();
-  const isDark = theme === 'dark';
+  const { theme, resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === 'dark' || theme === 'dark';
   const gridColor = isDark ? '#374151' : '#f0f0f0';
-  const textColor = isDark ? '#9ca3af' : '#888';
+  const textColor = isDark ? '#9ca3af' : '#6b7280';
   const tooltipBg = isDark ? '#1f2937' : '#ffffff';
   const tooltipBorder = isDark ? '#374151' : '#e5e7eb';
   const tooltipText = isDark ? '#f3f4f6' : '#111827';
@@ -71,7 +71,7 @@ export function TeamWorkloadChart() {
           <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: textColor }} dy={10} />
           <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: textColor }} />
           <Tooltip 
-            contentStyle={{ backgroundColor: tooltipBg, borderColor: tooltipBorder, color: tooltipText, borderRadius: '12px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}
+            contentStyle={{ backgroundColor: tooltipBg, borderColor: tooltipBorder, color: tooltipText, borderRadius: '12px', boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }}
             itemStyle={{ color: tooltipText }}
           />
           <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', paddingTop: '20px', color: textColor }} />
@@ -92,10 +92,10 @@ const velocityData = [
 ];
 
 export function SprintVelocityChart() {
-  const { theme } = useTheme();
-  const isDark = theme === 'dark';
+  const { theme, resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === 'dark' || theme === 'dark';
   const gridColor = isDark ? '#374151' : '#f0f0f0';
-  const textColor = isDark ? '#9ca3af' : '#888';
+  const textColor = isDark ? '#9ca3af' : '#6b7280';
   const tooltipBg = isDark ? '#1f2937' : '#ffffff';
   const tooltipBorder = isDark ? '#374151' : '#e5e7eb';
   const tooltipText = isDark ? '#f3f4f6' : '#111827';
@@ -110,7 +110,7 @@ export function SprintVelocityChart() {
           <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: textColor }} />
           <Tooltip 
             cursor={{ fill: cursorFill }}
-            contentStyle={{ backgroundColor: tooltipBg, borderColor: tooltipBorder, color: tooltipText, borderRadius: '12px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}
+            contentStyle={{ backgroundColor: tooltipBg, borderColor: tooltipBorder, color: tooltipText, borderRadius: '12px', boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }}
             itemStyle={{ color: tooltipText }}
           />
           <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', paddingTop: '20px', color: textColor }} />
@@ -133,10 +133,10 @@ const flowData = [
 ];
 
 export function CumulativeFlowChart() {
-  const { theme } = useTheme();
-  const isDark = theme === 'dark';
+  const { theme, resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === 'dark' || theme === 'dark';
   const gridColor = isDark ? '#374151' : '#f0f0f0';
-  const textColor = isDark ? '#9ca3af' : '#888';
+  const textColor = isDark ? '#9ca3af' : '#6b7280';
   const tooltipBg = isDark ? '#1f2937' : '#ffffff';
   const tooltipBorder = isDark ? '#374151' : '#e5e7eb';
   const tooltipText = isDark ? '#f3f4f6' : '#111827';
@@ -149,7 +149,7 @@ export function CumulativeFlowChart() {
           <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: textColor }} dy={10} />
           <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: textColor }} />
           <Tooltip 
-            contentStyle={{ backgroundColor: tooltipBg, borderColor: tooltipBorder, color: tooltipText, borderRadius: '12px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}
+            contentStyle={{ backgroundColor: tooltipBg, borderColor: tooltipBorder, color: tooltipText, borderRadius: '12px', boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }}
             itemStyle={{ color: tooltipText }}
           />
           <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', paddingTop: '20px', color: textColor }} />
