@@ -6,11 +6,11 @@ USE klarity_db;
 
 -- 1. Insertion des Utilisateurs
 INSERT INTO users (id, name, email, role, load_percentage, status) VALUES
-('USR-1', 'Samuel Mbarga', 'samuel.mbarga@klarity.cm', 'Lead Architecte & Fullstack', 75, 'busy'),
-('USR-2', 'Chantal Abena', 'chantal.abena@klarity.cm', 'Chef de Projet Senior', 60, 'available'),
-('USR-3', 'Emmanuel Nguema', 'emmanuel.nguema@klarity.cm', 'Ingénieur DevOps & Cloud', 80, 'busy'),
-('USR-4', 'Nathalie Ekotto', 'nathalie.ekotto@klarity.cm', 'UI/UX Designer', 40, 'available'),
-('USR-5', 'Dieudonné Tchato', 'dieudonne.tchato@klarity.cm', 'Développeur Backend', 50, 'away');
+('USR-1', 'Manuel Kuate', 'manuel.kuate@klarity.cm', 'Lead Architecte & Fullstack', 75, 'busy'),
+('USR-2', 'Berboss Penpen', 'berboss.penpen@klarity.cm', 'Chef de Projet Senior', 60, 'available'),
+('USR-3', 'Emmanuel Ngousop', 'emmanuel.ngousop@klarity.cm', 'Ingénieur DevOps & Cloud', 80, 'busy'),
+('USR-4', 'Franck Taptue', 'franck.taptue@klarity.cm', 'UI/UX Designer', 40, 'available'),
+('USR-5', 'Eliot Wabo', 'eliot.wabo@klarity.cm', 'Développeur Backend', 50, 'away');
 
 -- 2. Insertion des Projets
 INSERT INTO projects (id, name, description, manager_id, status, priority, budget, budget_spent, progress, start_date, end_date) VALUES
