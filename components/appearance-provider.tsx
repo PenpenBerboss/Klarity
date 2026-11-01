@@ -33,17 +33,17 @@ export function AppearanceProvider({ children }: { children: React.ReactNode }) 
 
   // Read saved local storage preferences after mount to prevent hydration mismatches
   useEffect(() => {
-    const timer = setTimeout(() => {
+    const applySavedSettings = () => {
       try {
         const settings = getStoredUserSettings();
-        const savedAccent = (localStorage.getItem('klarity_accent') || settings.accentColor) as AccentColor;
+        const savedAccent = (settings.accentColor || localStorage.getItem('klarity_accent')) as AccentColor;
         if (savedAccent && ['indigo', 'emerald', 'purple', 'amber', 'blue'].includes(savedAccent)) {
           setAccentColorState(savedAccent);
           document.documentElement.setAttribute('data-accent', savedAccent);
         } else {
           document.documentElement.setAttribute('data-accent', 'indigo');
         }
-        const savedDensity = (localStorage.getItem('klarity_density') || settings.density) as Density;
+        const savedDensity = (settings.density || localStorage.getItem('klarity_density')) as Density;
         if (savedDensity && ['comfortable', 'compact'].includes(savedDensity)) {
           setDensityState(savedDensity);
           document.documentElement.setAttribute('data-density', savedDensity);
@@ -51,8 +51,18 @@ export function AppearanceProvider({ children }: { children: React.ReactNode }) 
       } catch {
         // Ignore
       }
-    }, 0);
-    return () => clearTimeout(timer);
+    };
+    const timer = setTimeout(applySavedSettings, 0);
+    const handleDatabaseUpdate = (event: Event) => {
+      if ((event as CustomEvent<{ key?: string }>).detail?.key === 'user_settings') {
+        applySavedSettings();
+      }
+    };
+    window.addEventListener('klarity_db_update', handleDatabaseUpdate);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('klarity_db_update', handleDatabaseUpdate);
+    };
   }, []);
 
   // Synchronize HTML attributes on change

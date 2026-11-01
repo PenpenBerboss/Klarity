@@ -1,9 +1,10 @@
 -- ========================================================
 -- SCRIPT DE CRÉATION DE LA BASE DE DONNÉES KLARITY (MySQL)
+-- Schéma de référence intégrant les évolutions précédemment fournies en migrations.
 -- ========================================================
 
-CREATE DATABASE IF NOT EXISTS klarity_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE klarity_db;
+CREATE DATABASE IF NOT EXISTS klarity CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE klarity;
 
 -- Désactivation temporaire des contraintes de clés étrangères pour la réinitialisation
 SET FOREIGN_KEY_CHECKS = 0;
@@ -29,7 +30,8 @@ CREATE TABLE users (
     email VARCHAR(150) NOT NULL UNIQUE,
     role VARCHAR(100) NOT NULL DEFAULT 'Développeur Fullstack',
     department VARCHAR(100) NOT NULL DEFAULT 'Général',
-    avatar_url VARCHAR(255) NULL,
+    bio TEXT NULL,
+    avatar_url MEDIUMTEXT NULL,
     load_percentage INT NOT NULL DEFAULT 50,
     status ENUM('available', 'busy', 'away', 'offline', 'invited') DEFAULT 'available',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -152,7 +154,7 @@ CREATE TABLE user_settings (
     accent_color VARCHAR(30) DEFAULT 'indigo',
     density ENUM('compact', 'comfortable', 'spacious') DEFAULT 'comfortable',
     language VARCHAR(10) DEFAULT 'fr',
-    timezone VARCHAR(100) DEFAULT 'Europe/Paris',
+    timezone VARCHAR(100) DEFAULT 'Africa/Douala',
     date_format VARCHAR(20) DEFAULT 'DD/MM/YYYY',
     email_notifications BOOLEAN DEFAULT TRUE,
     push_notifications BOOLEAN DEFAULT TRUE,

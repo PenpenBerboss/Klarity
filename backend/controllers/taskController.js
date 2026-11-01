@@ -1,5 +1,7 @@
 const crypto = require('node:crypto');
 const db = require('../config/db');
+// The application currently has a single active profile until authentication is added.
+const CURRENT_USER_ID = 'USR-1';
 
 async function resolveProjectId(connection, task) {
   if (task.project_id) return task.project_id;
@@ -46,6 +48,16 @@ async function replaceTaskDetails(connection, taskId, task) {
       );
     }
   }
+}
+
+function isManagerRole(role) {
+  const normalizedRole = String(role || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+
+  return normalizedRole === 'manager';
 }
 
 exports.getAllTasks = async (req, res) => {
@@ -118,9 +130,24 @@ exports.updateTask = async (req, res) => {
   const task = req.body;
   try {
     await connection.beginTransaction();
+    const [existingTasks] = await connection.query(
+      'SELECT status FROM tasks WHERE id = ? FOR UPDATE',
+      [id]
+    );
+    if (existingTasks.length === 0) {
+      await connection.rollback();
+      return res.status(404).json({ error: 'Tâche non trouvée' });
+    }
+    if (existingTasks[0].status === 'review' && task.status === 'done') {
+      const [actors] = await connection.query('SELECT role FROM users WHERE id = ?', [CURRENT_USER_ID]);
+      if (!actors.length || !isManagerRole(actors[0].role)) {
+        await connection.rollback();
+        return res.status(403).json({ error: 'Seul un manager peut terminer une tâche en revue' });
+      }
+    }
     const projectId = await resolveProjectId(connection, task);
     const assigneeId = await resolveAssigneeId(connection, task.assignee_id || task.assignee);
-    const [result] = await connection.query(
+    await connection.query(
       `UPDATE tasks SET
         title = COALESCE(?, title), description = COALESCE(?, description),
         project_id = COALESCE(?, project_id), assignee_id = ?,
@@ -131,13 +158,6 @@ exports.updateTask = async (req, res) => {
         task.status ?? null, task.priority ?? null, task.dueDate || task.due_date || null,
         task.sprintId ?? task.sprint_id ?? null, id]
     );
-    if (result.affectedRows === 0) {
-      const [exists] = await connection.query('SELECT id FROM tasks WHERE id = ?', [id]);
-      if (exists.length === 0) {
-        await connection.rollback();
-        return res.status(404).json({ error: 'Tâche non trouvée' });
-      }
-    }
     await replaceTaskDetails(connection, id, task);
     await connection.commit();
     res.json({ message: 'Tâche mise à jour avec succès' });

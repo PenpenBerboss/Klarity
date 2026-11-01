@@ -5,6 +5,7 @@ import { ThemeProvider } from '@/components/theme-provider';
 import { AppearanceProvider } from '@/components/appearance-provider';
 import { NotificationProvider } from '@/components/notification-provider';
 import { DatabaseProvider } from '@/components/database-provider';
+import { ToastProvider } from '@/components/toast-provider';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -27,11 +28,13 @@ export default function RootLayout({
       <body suppressHydrationWarning className={`${inter.className} antialiased bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 min-h-screen transition-colors duration-200`}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange={false}>
           <DatabaseProvider>
-            <AppearanceProvider>
-              <NotificationProvider>
-                {children}
-              </NotificationProvider>
-            </AppearanceProvider>
+            <ToastProvider>
+              <AppearanceProvider>
+                <NotificationProvider>
+                  {children}
+                </NotificationProvider>
+              </AppearanceProvider>
+            </ToastProvider>
           </DatabaseProvider>
         </ThemeProvider>
       </body>

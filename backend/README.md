@@ -49,14 +49,9 @@ backend/
    mysql -u root -p
    ```
 
-2. Pour une base **neuve uniquement**, exécutez **`schema.sql`** pour créer la base de données `klarity_db` et ses tables. Ce script réinitialise les tables : ne l’exécutez pas sur une base contenant des données à conserver.
+2. Pour une base **neuve uniquement**, exécutez **`schema.sql`** pour créer la base de données `klarity` et ses tables. Ce schéma de référence intègre les évolutions antérieures (profil utilisateur, alertes et fuseau horaire `Africa/Douala`). Le script réinitialise les tables : ne l’exécutez pas sur une base contenant des données à conserver. Pour une base existante, adaptez le schéma manuellement afin de préserver ses données.
    ```bash
    mysql -u root -p < schema.sql
-   ```
-
-   Pour une base Klarity déjà existante, appliquez une fois la migration non destructive :
-   ```bash
-   mysql -u root -p < migrations/20261030_data_sync.sql
    ```
 
 3. Exécutez **`seed.sql`** uniquement pour ajouter les données de démonstration à une base neuve :
@@ -77,6 +72,9 @@ backend/
    ```bash
    npm install
    ```
+   Cette commande installe notamment `dotenv`, utilisé par `server.js` et la configuration MySQL. Si Node affiche `Cannot find module 'dotenv'`, relancez `npm install` depuis le dossier `backend` avant de redémarrer le serveur.
+
+Les photos de profil (JPG, PNG, GIF ou WebP, 1 Mo maximum) sont enregistrées localement dans `backend/photos/`. Leur chemin est enregistré dans MySQL et les fichiers sont servis par l’API ; le dossier doit donc être conservé lors des redémarrages et inclus dans les sauvegardes. Dans un hébergement avec disque éphémère, configurez un volume persistant pour ce dossier.
 
 3. Créez un fichier `.env` basé sur `.env.example` :
    ```bash
@@ -89,7 +87,7 @@ backend/
    DB_HOST=localhost
    DB_USER=root
    DB_PASSWORD=votre_mot_de_passe_mysql
-   DB_NAME=klarity_db
+   DB_NAME=klarity
    DB_PORT=3306
    ```
 

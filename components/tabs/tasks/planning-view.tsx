@@ -6,7 +6,8 @@ import { clsx } from 'clsx';
 import { motion, AnimatePresence } from 'motion/react';
 import { useNotifications } from '@/components/notification-provider';
 
-import { Task, Sprint } from '@/lib/api';
+import { createEntityId, Task, Sprint, UserMember } from '@/lib/api';
+import { TaskAssigneeAvatar } from './task-assignee-avatar';
 
 interface PlanningViewProps {
   tasks: Task[];
@@ -14,9 +15,10 @@ interface PlanningViewProps {
   sprints: Sprint[];
   setSprints: (sprints: Sprint[]) => void;
   openEditModal: (task: Task) => void;
+  teamProfiles: UserMember[];
 }
 
-export function PlanningView({ tasks, setTasks, sprints, setSprints, openEditModal }: PlanningViewProps) {
+export function PlanningView({ tasks, setTasks, sprints, setSprints, openEditModal, teamProfiles }: PlanningViewProps) {
   const [expandedSprints, setExpandedSprints] = useState<string[]>(['SPR-1', 'SPR-2', 'backlog']);
   const [isSprintModalOpen, setIsSprintModalOpen] = useState(false);
   const [editingSprint, setEditingSprint] = useState<Sprint | null>(null);
@@ -64,7 +66,7 @@ export function PlanningView({ tasks, setTasks, sprints, setSprints, openEditMod
       setSprints(sprints.map(s => s.id === editingSprint.id ? { ...s, ...sprintForm } : s));
     } else {
       const newSprint: Sprint = {
-        id: `SPR-${Date.now()}`,
+        id: createEntityId('SPR'),
         name: sprintForm.name,
         startDate: sprintForm.startDate,
         endDate: sprintForm.endDate,
@@ -202,9 +204,7 @@ export function PlanningView({ tasks, setTasks, sprints, setSprints, openEditMod
                             {task.project}
                           </span>
                           <div className="flex -space-x-2">
-                            <div className="w-6 h-6 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center text-[10px] font-bold text-indigo-600 dark:text-indigo-400 border border-white dark:border-gray-900" title={task.assignee}>
-                              {task.assignee.charAt(0)}
-                            </div>
+                            <TaskAssigneeAvatar assignee={task.assignee || ''} teamMembers={teamProfiles} size={24} />
                           </div>
                           <button 
                             onClick={() => openEditModal(task)}

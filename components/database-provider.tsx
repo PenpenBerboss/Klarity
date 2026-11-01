@@ -6,12 +6,10 @@ import { syncDatabaseStorage } from '@/lib/api';
 export function DatabaseProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [requestError, setRequestError] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
     setError(null);
-    setRequestError(null);
     try {
       await syncDatabaseStorage();
     } catch (loadError) {
@@ -33,19 +31,24 @@ export function DatabaseProvider({ children }: { children: React.ReactNode }) {
           setLoading(false);
         }
       });
-    const handleApiError = (event: Event) => {
-      const detail = (event as CustomEvent<{ message?: string }>).detail;
-      setRequestError(detail?.message || 'Échec de synchronisation avec le backend.');
-    };
-    window.addEventListener('klarity_api_error', handleApiError);
     return () => {
       active = false;
-      window.removeEventListener('klarity_api_error', handleApiError);
     };
   }, []);
 
   if (loading) {
-    return <div className="p-8 text-sm text-gray-500">Connexion à la base de données...</div>;
+    return (
+      <main
+        className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-950"
+        role="status"
+        aria-label="Chargement des données depuis le serveur"
+      >
+        <div className="flex h-16 w-16 animate-spin items-center justify-center rounded-2xl bg-indigo-600 text-xl font-black text-white shadow-lg shadow-indigo-600/25 motion-reduce:animate-none">
+          K
+        </div>
+        <span className="sr-only">Chargement des données...</span>
+      </main>
+    );
   }
 
   if (error) {
@@ -67,17 +70,5 @@ export function DatabaseProvider({ children }: { children: React.ReactNode }) {
     );
   }
 
-  return (
-    <>
-      {requestError && (
-        <div role="alert" className="fixed bottom-4 right-4 z-[100] max-w-lg rounded-xl border border-red-300 bg-white p-4 text-sm text-red-800 shadow-xl">
-          <p>La synchronisation avec le backend a échoué : {requestError}</p>
-          <button type="button" className="mt-2 font-semibold underline" onClick={() => void loadData()}>
-            Recharger les données
-          </button>
-        </div>
-      )}
-      {children}
-    </>
-  );
+  return children;
 }

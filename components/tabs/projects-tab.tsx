@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { MoreVertical, Calendar, CheckCircle2, AlertCircle, Clock, Plus, Trash2, Edit2, Archive, ExternalLink } from 'lucide-react';
 import { clsx } from 'clsx';
 import { ProjectModal } from './projects/project-modal';
+import { formatCfa } from '@/lib/format';
 import { 
   getStoredProjects, 
   saveProject as saveProjectToDb, 
@@ -228,7 +229,7 @@ export function ProjectsTab() {
                   <Calendar size={13} /> {project.dueDate}
                 </span>
                 <span className="font-semibold text-gray-700 dark:text-gray-300">
-                  {project.budget} k$ / {project.totalBudget} k$
+                  {formatCfa(project.budget)} / {formatCfa(project.totalBudget)}
                 </span>
               </div>
             </div>

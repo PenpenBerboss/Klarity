@@ -67,4 +67,4 @@ INSERT INTO notifications (id, user_id, type, title, message, is_read) VALUES
 
 -- 10. Insertion des Paramètres Utilisateur & Fuseau Horaire
 INSERT INTO user_settings (user_id, theme, accent_color, density, language, timezone, date_format, email_notifications, push_notifications) VALUES
-('USR-1', 'system', 'indigo', 'comfortable', 'fr', 'Europe/Paris', 'DD/MM/YYYY', TRUE, TRUE);
+('USR-1', 'system', 'indigo', 'comfortable', 'fr', 'Africa/Douala', 'DD/MM/YYYY', TRUE, TRUE);

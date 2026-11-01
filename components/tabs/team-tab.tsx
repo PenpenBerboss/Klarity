@@ -15,7 +15,7 @@ import {
   Task 
 } from '@/lib/api';
 
-export function TeamTab() {
+export function TeamTab({ searchQuery = '' }: { searchQuery?: string }) {
   const [team, setTeam] = useState<UserMember[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -49,6 +49,15 @@ export function TeamTab() {
     window.addEventListener('klarity_db_update', handleDbUpdate);
     return () => window.removeEventListener('klarity_db_update', handleDbUpdate);
   }, []);
+
+  const normalizedSearch = searchQuery.trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('fr');
+  const filteredTeam = team.filter(member =>
+    !normalizedSearch || `${member.name} ${member.email} ${member.role} ${member.department}`
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLocaleLowerCase('fr')
+      .includes(normalizedSearch)
+  );
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -180,7 +189,7 @@ export function TeamTab() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-              {team.map(member => (
+              {filteredTeam.map(member => (
                 <tr key={member.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
@@ -281,6 +290,13 @@ export function TeamTab() {
                   </td>
                 </tr>
               ))}
+              {filteredTeam.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="px-6 py-10 text-center text-sm text-gray-500">
+                    Aucun membre ne correspond à « {searchQuery} ».
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

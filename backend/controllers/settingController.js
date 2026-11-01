@@ -41,7 +41,7 @@ exports.updateUserSettings = async (req, res) => {
          email_notifications = COALESCE(?, email_notifications),
          push_notifications = COALESCE(?, push_notifications)`,
       [userId, theme || 'system', accent_color || 'indigo', density || 'comfortable',
-        language || 'fr', timezone || 'Europe/Paris', date_format || 'DD/MM/YYYY',
+        language || 'fr', timezone || 'Africa/Douala', date_format || 'DD/MM/YYYY',
         email_notifications ?? true, push_notifications ?? true,
         theme, accent_color, density, language, timezone, date_format, email_notifications, push_notifications]
     );

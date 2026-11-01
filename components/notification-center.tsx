@@ -95,8 +95,14 @@ export function NotificationCenter({ isOpen, onClose }: { isOpen: boolean, onClo
                         <span className="text-[10px] text-gray-400 whitespace-nowrap" suppressHydrationWarning>
                           {mounted ? (() => {
                             const ts = new Date(notification.timestamp).getTime();
-                            const diffInMinutes = Math.round((ts - now) / (1000 * 60));
-                            return new Intl.RelativeTimeFormat('fr', { numeric: 'auto' }).format(diffInMinutes, 'minute');
+                            if (!Number.isFinite(ts)) return '';
+                            const diffInMinutes = Math.max(0, Math.floor((now - ts) / 60000));
+                            if (diffInMinutes < 1) return 'À l’instant';
+                            if (diffInMinutes < 60) return `Il y a ${diffInMinutes} min`;
+                            const diffInHours = Math.floor(diffInMinutes / 60);
+                            if (diffInHours < 24) return `Il y a ${diffInHours} h`;
+                            const diffInDays = Math.floor(diffInHours / 24);
+                            return `Il y a ${diffInDays} j`;
                           })() : 'À l\'instant'}
                         </span>
                       </div>

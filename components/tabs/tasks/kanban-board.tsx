@@ -5,7 +5,8 @@ import { MoreHorizontal, Plus, Trash2, Edit2, User, Tag, Link2, Copy, ArrowRight
 import { clsx } from 'clsx';
 import { DeadlineTimerBadge } from '../../deadline-timer-badge';
 
-import { Task } from '@/lib/api';
+import { Task, UserMember } from '@/lib/api';
+import { TaskAssigneeAvatar } from './task-assignee-avatar';
 
 interface Column {
   id: string;
@@ -32,6 +33,7 @@ interface KanbanBoardProps {
   updateTaskPriority: (taskId: string, newPriority: string) => void;
   updateTaskAssignee: (taskId: string, newAssignee: string) => void;
   teamMembers: string[];
+  teamProfiles: UserMember[];
   projectsList: string[];
 }
 
@@ -55,6 +57,7 @@ export function KanbanBoard({
   updateTaskPriority,
   updateTaskAssignee,
   teamMembers,
+  teamProfiles,
   projectsList
 }: KanbanBoardProps) {
   const [activeSubMenu, setActiveSubMenu] = useState<'status' | 'priority' | 'assignee' | null>(null);
@@ -343,9 +346,7 @@ export function KanbanBoard({
 
                       {/* Assignee Avatar Badge */}
                       <div className="flex items-center gap-1.5 bg-indigo-50 dark:bg-indigo-950/40 px-2 py-1 rounded-lg border border-indigo-100 dark:border-indigo-900/50" title={`Assigné à: ${task.assignee}`}>
-                        <div className="w-4 h-4 rounded-full bg-indigo-600 text-white flex items-center justify-center text-[9px] font-bold">
-                          {task.assignee ? task.assignee.charAt(0) : <User size={10} />}
-                        </div>
+                        <TaskAssigneeAvatar assignee={task.assignee} teamMembers={teamProfiles} size={16} />
                         <span className="text-[11px] font-medium text-indigo-700 dark:text-indigo-300 truncate max-w-[80px]">
                           {task.assignee ? task.assignee.split(' ')[0] : 'Inconnu'}
                         </span>

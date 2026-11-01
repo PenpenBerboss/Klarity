@@ -1,17 +1,21 @@
 import React from 'react';
 import { ChevronLeft, ChevronRight, Link2 } from 'lucide-react';
 import { clsx } from 'clsx';
+import { UserMember } from '@/lib/api';
+import { TaskAssigneeAvatar } from './task-assignee-avatar';
 
 export function CalendarView({
   currentMonth,
   setCurrentMonth,
   filteredTasks,
-  openEditModal
+  openEditModal,
+  teamProfiles,
 }: {
   currentMonth: Date,
   setCurrentMonth: (date: Date) => void,
   filteredTasks: any[],
-  openEditModal: (task: any) => void
+  openEditModal: (task: any) => void,
+  teamProfiles: UserMember[],
 }) {
   const year = currentMonth.getFullYear();
   const month = currentMonth.getMonth();
@@ -56,7 +60,13 @@ export function CalendarView({
               )}
               title={task.title}
             >
-              <div className="font-medium truncate">{task.title}</div>
+              <div className="min-w-0 flex-1">
+                <div className="font-medium truncate">{task.title}</div>
+                <div className="mt-1 flex min-w-0 items-center gap-1.5 text-[10px] opacity-80">
+                  <TaskAssigneeAvatar assignee={task.assignee || ''} teamMembers={teamProfiles} size={18} />
+                  <span className="truncate">{task.assignee || 'Non assignée'}</span>
+                </div>
+              </div>
               {task.dependencies && task.dependencies.length > 0 && (
                 <span title={`Dépend de: ${task.dependencies.join(', ')}`} className="shrink-0 opacity-70 flex items-center">
                   <Link2 size={12} />

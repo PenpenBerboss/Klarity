@@ -33,8 +33,8 @@
 ---
 
 ### 🕒 3. Horloge en Temps Réel & Fuseau Horaire Détecté (`LiveClock`)
-- **Affichage Adaptatif** : Affiche l'heure exacte (heures, minutes, secondes) et la date selon les paramètres locaux de l'ordinateur ou du téléphone.
-- **Fuseau Horaire Automatique** : Détection automatique du fuseau horaire local (ex: *Africa/Douala (UTC+1)*) dans la barre supérieure (`Topbar`).
+- **Réglage par défaut camerounais** : Affichage en français du Cameroun, avec le fuseau *Africa/Douala (UTC+1)* sélectionné par défaut.
+- **Fuseau personnalisable** : Le fuseau horaire peut toujours être changé dans les paramètres de l'application.
 
 ---
 
@@ -45,12 +45,15 @@
   - **Tâches & Réassignations** : Notification lors de l'attribution ou de la réassignation d'une tâche, rappels pour les échéances imminentes (< 48 heures), passage de statut (*En revue*, *Terminé*).
   - **Mentions dans les Commentaires** : Notification automatique lorsqu'un utilisateur est mentionné (ex: `@Samuel Mbarga`).
   - **Projets & Jalons** : Confirmation instantanée lors de la validation d'un jalon ou du changement de statut d'un projet.
+- **Alertes entrantes** : Vérification périodique des nouvelles notifications, toast discret à leur arrivée et bip sonore lorsque les alertes dans l'application sont activées. Les durées s'affichent en minutes, heures ou jours.
 
 ---
 
 ### 📋 5. Gestion Interactive des Tâches (`TasksTab`)
 Propose 4 vues interchangeables adaptées aux méthodologies modernes :
-- **Vue Kanban** : Colonnes adaptatives (*À faire*, *En cours*, *En revue*, *Terminé*) avec support du glisser-déposer, badges de priorité, indicateurs de dépendances, sous-tâches interactives et menu 3 points complet.
+- **Vue Kanban** : Colonnes adaptatives (*À faire*, *En cours*, *En revue*, *Terminé*) avec support du glisser-déposer, badges de priorité, indicateurs de dépendances, sous-tâches interactives et menu 3 points complet. Seuls les comptes dont le rôle en base est *Manager* peuvent terminer une tâche en revue.
+- **Contrôle de rôle** : En l'absence de connexion multi-utilisateur, le backend vérifie le rôle du profil actif `USR-1` directement dans la table `users` ; il doit être `Manager` pour terminer une tâche en revue. Une authentification sera nécessaire pour gérer plusieurs comptes connectés.
+- **Recherche globale** : La barre supérieure retrouve les tâches (titre, ID, projet ou responsable) et les collaborateurs (nom, courriel, rôle ou département). Sélectionner un résultat ouvre la vue correspondante avec le filtre appliqué ; le raccourci `Ctrl+K` / `Cmd+K` ouvre la recherche.
 - **Fermeture Intelligente des Cartes / Modales** : Clic en dehors du conteneur (sur le fond assombri) pour fermer instantanément la modale ou la carte ouverte.
 - **Timers d'Échéance Dynamiques** (`DeadlineTimerBadge`) : Compte à rebours en temps réel avec variation de couleur selon l'urgence :
   - 🔴 **Rouge clignotant** : En retard
@@ -63,13 +66,15 @@ Propose 4 vues interchangeables adaptées aux méthodologies modernes :
 - **Vue Planning & Sprints (Agile)** :
   - CRUD complet des Sprints (Création, modification du nom et des périodes, clôture de sprint).
   - Backlog réorganisable avec Drag & Drop vers les sprints prévus.
-- **Vue Calendrier** : Vue d'ensemble mensuelle calée sur les dates d'échéance.
+- **Vue Calendrier** : Vue d'ensemble mensuelle calée sur les dates d'échéance, avec le nom du responsable affiché sur chaque tâche.
 
 ---
 
 ### 📊 6. Tableau de Bord & Indicateurs KPI (`DashboardTab`)
 - **Cartes KPI en Temps Réel** : Suivi des projets actifs, tâches en cours, taux de réussite global et niveau de charge de l'équipe.
 - **Graphiques de Performance** : Visualisations interactives de la vélocité des sprints, de la santé des projets et de la répartition de la charge de travail.
+- **Budgets en FCFA** : Tous les montants de projet sont saisis et affichés en francs CFA (FCFA), avec des graphiques exprimés en millions de FCFA.
+- **Points de blocage** : Création dans un formulaire dédié ; les détails ne sont plus éditables directement dans la liste. Le menu à trois points ouvre le formulaire prérempli pour modifier un blocage existant.
 
 ---
 
@@ -79,7 +84,9 @@ Propose 4 vues interchangeables adaptées aux méthodologies modernes :
 ---
 
 ### ⚙️ 8. Configuration & Paramètres (`SettingsTab`)
-- **Profil & Apparence** : Personnalisation du profil et gestion d'apparence globale (Thème clair, sombre, couleurs d'accentuation, densité).
+- **Profil & Apparence** : Mise à jour du profil (nom, courriel, bio, photo) avec sauvegarde backend, et gestion du thème, des couleurs d'accentuation et de la densité.
+- **Retours d'opérations** : Notifications toast de succès ou d'échec pour les opérations backend ; préférences d'alertes dans l'application enregistrées.
+- **Données** : Export JSON des données chargées depuis l'API. Les fonctions de mot de passe, 2FA, intégrations OAuth et suppression du compte signalent leur indisponibilité tant qu'aucun système d'authentification n'est configuré.
 
 ---
 
@@ -95,11 +102,13 @@ Propose 4 vues interchangeables adaptées aux méthodologies modernes :
 
 Le frontend charge les projets, tâches, sprints, membres, notifications, paramètres et alertes depuis l’API Express/MySQL. Les routes `/api/*` de Next.js ne fournissent pas de données de démonstration ; elles transmettent les requêtes au backend.
 
-1. Configurez MySQL et le backend en suivant [backend/README.md](./backend/README.md). Utilisez `schema.sql` uniquement pour une base neuve ; appliquez la migration non destructive documentée si vous avez déjà une base Klarity.
+1. Configurez MySQL et le backend en suivant [backend/README.md](./backend/README.md). `backend/schema.sql` intègre le schéma final, y compris les évolutions antérieures et le fuseau camerounais. Il réinitialise les tables : utilisez-le uniquement pour une base neuve. Pour une base existante, adaptez le schéma manuellement afin de préserver les données.
 2. À la racine, configurez `BACKEND_URL` dans `.env.local` (par défaut `http://127.0.0.1:5000/api`).
-3. Lancez le backend (`npm run dev` dans `backend`) puis le frontend (`npm run dev` à la racine).
+3. Installez les dépendances backend avec `npm install` depuis le dossier `backend`, puis lancez-le avec `npm run dev`. Installez les dépendances frontend à la racine avec `npm install`, puis lancez le frontend avec `npm run dev`.
 
 Si l’API ou MySQL est indisponible, l’interface affiche une erreur de connexion au lieu de retomber sur des données mockées. `localStorage` ne sert qu’à mettre en cache les réponses du backend.
+
+Si le démarrage backend signale `Cannot find module 'dotenv'`, vérifiez que les dépendances ont bien été installées depuis `backend` (`cd backend` puis `npm install`), puis relancez `npm run dev`.
 
 ---
 

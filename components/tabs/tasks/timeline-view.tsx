@@ -4,13 +4,15 @@ import React, { useState, useRef } from 'react';
 import { clsx } from 'clsx';
 import { ChevronLeft, ChevronRight, Calendar, MoveHorizontal } from 'lucide-react';
 
-import { Task } from '@/lib/api';
+import { Task, UserMember } from '@/lib/api';
+import { TaskAssigneeAvatar } from './task-assignee-avatar';
 
 interface TimelineViewProps {
   filteredTasks: Task[];
+  teamProfiles: UserMember[];
 }
 
-export function TimelineView({ filteredTasks }: TimelineViewProps) {
+export function TimelineView({ filteredTasks, teamProfiles }: TimelineViewProps) {
   const [startDate, setStartDate] = useState(new Date(2026, 2, 1)); // March 2026 default
   const totalDays = 60; // 60 days scrollable range
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -178,6 +180,7 @@ export function TimelineView({ filteredTasks }: TimelineViewProps) {
                         }}
                         title={`${task.title} - ${task.assignee} (${task.dueDate})`}
                       >
+                        <TaskAssigneeAvatar assignee={task.assignee || ''} teamMembers={teamProfiles} size={20} />
                         <span className="truncate">{task.assignee}</span>
                       </div>
                     )}

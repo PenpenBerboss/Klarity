@@ -1,5 +1,56 @@
 const crypto = require('node:crypto');
+const fs = require('node:fs/promises');
+const path = require('node:path');
 const db = require('../config/db');
+
+const PHOTO_DIRECTORY = path.join(__dirname, '..', 'photos');
+const MAX_PHOTO_SIZE = 1024 * 1024;
+const PHOTO_FORMATS = {
+  'image/jpeg': { extension: 'jpg', matches: buffer => buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff },
+  'image/png': { extension: 'png', matches: buffer => buffer.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])) },
+  'image/gif': { extension: 'gif', matches: buffer => buffer.subarray(0, 6).toString('ascii').match(/^GIF8[79]a$/) !== null },
+  'image/webp': { extension: 'webp', matches: buffer => buffer.toString('ascii', 0, 4) === 'RIFF' && buffer.toString('ascii', 8, 12) === 'WEBP' },
+};
+
+async function storeAvatar(dataUrl) {
+  const match = /^data:(image\/(?:jpeg|png|gif|webp));base64,((?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?)$/.exec(dataUrl);
+  if (!match) {
+    const error = new Error('La photo doit être une image JPG, PNG, GIF ou WebP valide.');
+    error.status = 400;
+    throw error;
+  }
+
+  const [, contentType, encodedImage] = match;
+  const image = Buffer.from(encodedImage, 'base64');
+  if (image.length === 0 || image.length > MAX_PHOTO_SIZE) {
+    const error = new Error('La photo doit peser 1 Mo maximum.');
+    error.status = 400;
+    throw error;
+  }
+  if (!PHOTO_FORMATS[contentType].matches(image)) {
+    const error = new Error('Le contenu du fichier ne correspond pas au format de l’image.');
+    error.status = 400;
+    throw error;
+  }
+
+  const filename = `${crypto.randomUUID()}.${PHOTO_FORMATS[contentType].extension}`;
+  const filePath = path.join(PHOTO_DIRECTORY, filename);
+  await fs.mkdir(PHOTO_DIRECTORY, { recursive: true });
+  await fs.writeFile(filePath, image, { flag: 'wx', mode: 0o644 });
+
+  return { filePath, publicUrl: `/api/uploads/photos/${filename}` };
+}
+
+async function removeStoredAvatar(filePath) {
+  if (!filePath) return;
+  try {
+    await fs.unlink(filePath);
+  } catch (error) {
+    if (error.code !== 'ENOENT') {
+      console.error('Unable to remove an unreferenced profile photo:', error);
+    }
+  }
+}
 
 function databaseStatus(member) {
   if (member.status === 'invité' || member.status === 'invited') return 'invited';
@@ -12,7 +63,7 @@ function databaseStatus(member) {
 exports.getTeamMembers = async (req, res) => {
   try {
     const [users] = await db.query(
-      'SELECT id, name, email, role, department, load_percentage, status FROM users ORDER BY name ASC'
+      'SELECT id, name, email, role, department, bio, avatar_url, load_percentage, status FROM users ORDER BY name ASC'
     );
     res.json(users);
   } catch (err) {
@@ -38,24 +89,38 @@ exports.addTeamMember = async (req, res) => {
 
 exports.updateTeamMember = async (req, res) => {
   const member = req.body;
+  let uploadedAvatarPath;
   try {
+    let avatarUrl = member.avatar_url ?? member.avatarUrl ?? null;
+    if (typeof avatarUrl === 'string' && avatarUrl.startsWith('data:')) {
+      const storedAvatar = await storeAvatar(avatarUrl);
+      uploadedAvatarPath = storedAvatar.filePath;
+      avatarUrl = storedAvatar.publicUrl;
+    }
+
     const [result] = await db.query(
       `UPDATE users SET
         name = COALESCE(?, name), email = COALESCE(?, email), role = COALESCE(?, role),
         department = COALESCE(?, department), load_percentage = COALESCE(?, load_percentage),
-        status = COALESCE(?, status)
+        status = COALESCE(?, status), bio = COALESCE(?, bio),
+        avatar_url = COALESCE(?, avatar_url)
        WHERE id = ?`,
       [member.name ?? null, member.email ?? null, member.role ?? null,
         member.department ?? null, member.capacity ?? member.load_percentage ?? null,
-        member.status ? databaseStatus(member) : null, req.params.id]
+        member.status ? databaseStatus(member) : null, member.bio ?? null,
+        avatarUrl, req.params.id]
     );
     if (result.affectedRows === 0) {
       const [rows] = await db.query('SELECT id FROM users WHERE id = ?', [req.params.id]);
-      if (rows.length === 0) return res.status(404).json({ error: 'Membre introuvable' });
+      if (rows.length === 0) {
+        await removeStoredAvatar(uploadedAvatarPath);
+        return res.status(404).json({ error: 'Membre introuvable' });
+      }
     }
-    res.json({ message: 'Membre mis à jour' });
+    res.json({ message: 'Membre mis à jour', avatar_url: avatarUrl });
   } catch (err) {
-    res.status(500).json({ error: 'Erreur lors de la mise à jour', details: err.message });
+    if (uploadedAvatarPath) await removeStoredAvatar(uploadedAvatarPath);
+    res.status(err.status || 500).json({ error: err.status ? err.message : 'Erreur lors de la mise à jour', details: err.status ? undefined : err.message });
   }
 };
 

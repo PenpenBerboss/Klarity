@@ -1,62 +1,59 @@
-import React from 'react';
+"use client";
+
+import React, { useState } from 'react';
+import { Bell, Mail } from 'lucide-react';
+import { getStoredUserSettings, saveUserSettings } from '@/lib/api';
 
 export function NotificationsSection() {
-  const notificationTypes = [
-    { id: 'mentions', title: 'Mentions', desc: 'Quand quelqu\'un vous mentionne dans un commentaire.' },
-    { id: 'assignments', title: 'Assignations', desc: 'Quand une nouvelle tâche vous est assignée.' },
-    { id: 'due_dates', title: 'Échéances', desc: 'Quand une tâche arrive à son échéance.' },
-    { id: 'status_changes', title: 'Mises à jour de projet', desc: 'Quand le statut d\'un projet change.' },
-    { id: 'weekly_reports', title: 'Rapports hebdomadaires', desc: 'Recevoir un résumé de l\'activité chaque lundi.' }
-  ];
+  const [settings, setSettings] = useState(() => getStoredUserSettings());
+
+  const updatePreference = (key: 'pushNotifications' | 'emailNotifications', value: boolean) => {
+    const updated = { ...settings, [key]: value };
+    setSettings(updated);
+    saveUserSettings({ [key]: value });
+  };
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-300">
+    <div className="space-y-6 animate-in fade-in duration-300">
       <div>
-        <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-1">Préférences de notification</h3>
-        <p className="text-sm text-gray-500 dark:text-gray-400">Choisissez comment vous souhaitez être informé pour chaque type d&apos;événement.</p>
+        <h3 className="mb-1 text-lg font-medium text-gray-900 dark:text-white">Préférences de notification</h3>
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          Choisissez les canaux de notification à activer pour votre compte.
+        </p>
       </div>
 
-      <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl overflow-hidden">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="bg-gray-50/50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-800">
-              <th className="px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Événement</th>
-              <th className="px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-center">In-App</th>
-              <th className="px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-center">Email</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-            {notificationTypes.map((type) => (
-              <tr key={type.id} className="hover:bg-gray-50/30 dark:hover:bg-gray-800/30 transition-colors">
-                <td className="px-6 py-4">
-                  <p className="text-sm font-medium text-gray-900 dark:text-white">{type.title}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">{type.desc}</p>
-                </td>
-                <td className="px-6 py-4 text-center">
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" className="sr-only peer" defaultChecked />
-                    <div className="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 dark:peer-focus:ring-indigo-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 dark:after:border-gray-600 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
-                  </label>
-                </td>
-                <td className="px-6 py-4 text-center">
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" className="sr-only peer" defaultChecked={type.id !== 'weekly_reports'} />
-                    <div className="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 dark:peer-focus:ring-indigo-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 dark:after:border-gray-600 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
-                  </label>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <div className="divide-y divide-gray-100 rounded-2xl border border-gray-100 bg-white px-5 dark:divide-gray-800 dark:border-gray-800 dark:bg-gray-900">
+        <label className="flex cursor-pointer items-center justify-between gap-4 py-5">
+          <span className="flex items-start gap-3">
+            <Bell size={18} className="mt-0.5 text-indigo-500" />
+            <span>
+              <span className="block text-sm font-medium text-gray-900 dark:text-white">Notifications dans l’application</span>
+              <span className="mt-1 block text-xs text-gray-500 dark:text-gray-400">Alertes visuelles et sonores pour les nouvelles notifications.</span>
+            </span>
+          </span>
+          <input
+            type="checkbox"
+            checked={settings.pushNotifications}
+            onChange={event => updatePreference('pushNotifications', event.target.checked)}
+            className="h-4 w-4 accent-indigo-600"
+          />
+        </label>
 
-      <div className="flex justify-end gap-3 pt-4">
-        <button className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
-          Annuler
-        </button>
-        <button className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl shadow-sm shadow-indigo-200 dark:shadow-none transition-all">
-          Enregistrer les modifications
-        </button>
+        <label className="flex cursor-pointer items-center justify-between gap-4 py-5">
+          <span className="flex items-start gap-3">
+            <Mail size={18} className="mt-0.5 text-indigo-500" />
+            <span>
+              <span className="block text-sm font-medium text-gray-900 dark:text-white">Notifications par e-mail</span>
+              <span className="mt-1 block text-xs text-gray-500 dark:text-gray-400">Préférence enregistrée pour les communications par e-mail.</span>
+            </span>
+          </span>
+          <input
+            type="checkbox"
+            checked={settings.emailNotifications}
+            onChange={event => updatePreference('emailNotifications', event.target.checked)}
+            className="h-4 w-4 accent-indigo-600"
+          />
+        </label>
       </div>
     </div>
   );

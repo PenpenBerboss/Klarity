@@ -15,6 +15,8 @@ import { TutorialTab } from '@/components/tabs/tutorial-tab';
 export default function Dashboard() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [taskSearchQuery, setTaskSearchQuery] = useState('');
+  const [teamSearchQuery, setTeamSearchQuery] = useState('');
   const { setSettingsSection } = useAppearance();
 
   const handleOpenProfile = () => {
@@ -48,10 +50,19 @@ export default function Dashboard() {
         <Topbar 
           toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} 
           onOpenProfile={handleOpenProfile}
+          onSearchTask={query => {
+            setTaskSearchQuery(query);
+            setActiveTab('tasks');
+          }}
+          onSearchMember={query => {
+            setTeamSearchQuery(query);
+            setActiveTab('team');
+          }}
         />
         
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 custom-scrollbar">
-          {renderTab()}
+          {activeTab === 'tasks' ? <TasksTab key={taskSearchQuery} initialSearchQuery={taskSearchQuery} /> :
+            activeTab === 'team' ? <TeamTab searchQuery={teamSearchQuery} /> : renderTab()}
         </main>
       </div>
     </div>

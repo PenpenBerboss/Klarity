@@ -30,9 +30,10 @@
     "tailwind-merge": "^3.7.0"
   },
   "overrides": {
-    "qs": "^6.17.1",
-    "uuid": "^11.1.1",
-    "@opentelemetry/core": "^2.8.0"
+  "qs": "^6.17.1",
+  "uuid": "^11.1.1",
+  "@opentelemetry/core": "^2.8.0",
+  "postcss-selector-parser": "^6.1.5"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "4.3.3",
@@ -48,11 +49,11 @@
     "typescript": "~5.9.3"
   },
   "allowScripts": {
-    "@tailwindcss/oxide@4.1.11": true,
     "protobufjs@7.6.6": true,
     "core-js@3.51.0": true,
     "@google/genai@2.32.0": true,
-    "unrs-resolver@1.12.2": true,
-    "re2": false
+    "re2": false,
+    "@tailwindcss/oxide@4.3.3": true,
+    "unrs-resolver@1.13.0": true
   }
 }

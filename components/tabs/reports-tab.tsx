@@ -7,6 +7,7 @@ import { useNotifications } from '@/components/notification-provider';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { getStoredProjects, getStoredSprints, getStoredTasks, getStoredTeam } from '@/lib/api';
+import { showToast } from '@/lib/toast';
 
 const ChartLoadingFallback = () => (
   <div className="h-72 w-full flex items-center justify-center bg-gray-50/50 dark:bg-gray-800/30 rounded-xl animate-pulse">
@@ -61,63 +62,72 @@ export function ReportsTab() {
   }, []);
 
   const handleExportPDF = async () => {
-    const reportsElement = document.getElementById('reports-container');
-    if (!reportsElement) return;
+    const chartElements = Array.from(document.querySelectorAll<HTMLElement>('[data-report-chart]'));
+    if (chartElements.length === 0) {
+      showToast('error', 'Export impossible', 'Aucun graphique n’est disponible dans ce rapport.');
+      return;
+    }
 
     setIsExporting(true);
 
     try {
-      // Capture the container with high DPI
-      const canvas = await html2canvas(reportsElement, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: document.documentElement.classList.contains('dark') ? '#090d16' : '#ffffff',
-        logging: false
-      });
-
-      const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF('p', 'mm', 'a4');
-
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = pdf.internal.pageSize.getHeight();
+      const margin = 14;
+      const headerHeight = 28;
+      const footerHeight = 14;
+      const maxImageWidth = pdfWidth - margin * 2;
+      const maxImageHeight = pdfHeight - headerHeight - footerHeight - margin;
+      const backgroundColor = document.documentElement.classList.contains('dark') ? '#090d16' : '#ffffff';
 
-      // PDF Title Header
-      pdf.setFillColor(79, 70, 229); // Indigo 600
-      pdf.rect(0, 0, pdfWidth, 24, 'F');
+      for (const [index, chartElement] of chartElements.entries()) {
+        const canvas = await html2canvas(chartElement, {
+          scale: 2,
+          useCORS: true,
+          backgroundColor,
+          logging: false,
+        });
+        const imageScale = Math.min(maxImageWidth / canvas.width, maxImageHeight / canvas.height);
+        const imageWidth = canvas.width * imageScale;
+        const imageHeight = canvas.height * imageScale;
+        const imageX = (pdfWidth - imageWidth) / 2;
+        const imageY = headerHeight + (maxImageHeight - imageHeight) / 2;
 
-      pdf.setTextColor(255, 255, 255);
-      pdf.setFont('helvetica', 'bold');
-      pdf.setFontSize(14);
-      pdf.text(`RAPPORT D'ACTIVITÉ & METRIQUES KPI ${new Date().getFullYear()}`, 14, 12);
+        if (index > 0) pdf.addPage();
 
-      pdf.setFont('helvetica', 'normal');
-      pdf.setFontSize(8);
-      pdf.text(`Généré le : ${new Date().toLocaleDateString('fr-FR')}`, 14, 18);
+        pdf.setFillColor(79, 70, 229);
+        pdf.rect(0, 0, pdfWidth, 24, 'F');
+        pdf.setTextColor(255, 255, 255);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(14);
+        pdf.text(`RAPPORT D'ACTIVITÉ & METRIQUES KPI ${new Date().getFullYear()}`, margin, 12);
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(8);
+        pdf.text(`Généré le : ${new Date().toLocaleDateString('fr-CM')}`, margin, 18);
 
-      // Add image below header
-      const imgWidth = pdfWidth - 28;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+        pdf.addImage(canvas.toDataURL('image/png'), 'PNG', imageX, imageY, imageWidth, imageHeight);
+        pdf.setFontSize(8);
+        pdf.setTextColor(150, 150, 150);
+        pdf.text(
+          `Graphique ${index + 1}/${chartElements.length} · Document généré par Klarity`,
+          margin,
+          pdfHeight - 8,
+        );
+      }
 
-      pdf.addImage(imgData, 'PNG', 14, 28, imgWidth, Math.min(imgHeight, pdfHeight - 38));
-
-      // PDF Footer
-      pdf.setFontSize(8);
-      pdf.setTextColor(150, 150, 150);
-      pdf.text("Document officiel généré par le système de gestion de projets.", 14, pdfHeight - 8);
-
-      // Save PDF
       pdf.save(`Rapport_Performances_KPI_${new Date().toISOString().split('T')[0]}.pdf`);
 
       addNotification({
         type: 'system',
         title: 'Export PDF Réussi',
-        message: 'Le rapport complet des KPI et métriques a été téléchargé au format PDF.',
+        message: `Les ${chartElements.length} graphiques du rapport ont été exportés au format PDF.`,
         link: '#'
       });
     } catch (err) {
       console.error('Erreur lors de la génération du PDF:', err);
-      // Fallback: window.print()
-      window.print();
+      const message = err instanceof Error ? err.message : 'Une erreur inattendue est survenue.';
+      showToast('error', 'Échec de l’export PDF', message);
     } finally {
       setIsExporting(false);
     }
@@ -206,7 +216,7 @@ export function ReportsTab() {
       <div id="reports-container" className="space-y-6 bg-transparent">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Chart 1 */}
-          <div className="bg-white dark:bg-gray-900 p-5 sm:p-6 rounded-2xl shadow-xs border border-gray-200/80 dark:border-gray-800">
+          <div data-report-chart className="bg-white dark:bg-gray-900 p-5 sm:p-6 rounded-2xl shadow-xs border border-gray-200/80 dark:border-gray-800">
             <div className="flex justify-between items-center mb-4">
               <div>
                 <h2 className="text-sm sm:text-base font-bold text-gray-900 dark:text-white">Santé des Projets (Budget vs Réel)</h2>
@@ -218,7 +228,7 @@ export function ReportsTab() {
           </div>
           
           {/* Chart 2 */}
-          <div className="bg-white dark:bg-gray-900 p-5 sm:p-6 rounded-2xl shadow-xs border border-gray-200/80 dark:border-gray-800">
+          <div data-report-chart className="bg-white dark:bg-gray-900 p-5 sm:p-6 rounded-2xl shadow-xs border border-gray-200/80 dark:border-gray-800">
             <div className="flex justify-between items-center mb-4">
               <div>
                 <h2 className="text-sm sm:text-base font-bold text-gray-900 dark:text-white">Tâches terminées par sprint</h2>
@@ -230,7 +240,7 @@ export function ReportsTab() {
           </div>
 
           {/* Chart 3 */}
-          <div className="bg-white dark:bg-gray-900 p-5 sm:p-6 rounded-2xl shadow-xs border border-gray-200/80 dark:border-gray-800">
+          <div data-report-chart className="bg-white dark:bg-gray-900 p-5 sm:p-6 rounded-2xl shadow-xs border border-gray-200/80 dark:border-gray-800">
             <div className="flex justify-between items-center mb-4">
               <div>
                 <h2 className="text-sm sm:text-base font-bold text-gray-900 dark:text-white">Répartition des tâches par statut</h2>
@@ -241,7 +251,7 @@ export function ReportsTab() {
           </div>
 
           {/* Chart 4 */}
-          <div className="bg-white dark:bg-gray-900 p-5 sm:p-6 rounded-2xl shadow-xs border border-gray-200/80 dark:border-gray-800">
+          <div data-report-chart className="bg-white dark:bg-gray-900 p-5 sm:p-6 rounded-2xl shadow-xs border border-gray-200/80 dark:border-gray-800">
             <div className="flex justify-between items-center mb-4">
               <div>
                 <h2 className="text-sm sm:text-base font-bold text-gray-900 dark:text-white">Charge par Collaborateur</h2>

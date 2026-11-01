@@ -1,6 +1,15 @@
 // Client and Server Persistent Storage Engine & API for Klarity Platform
 
+import { showToast } from '@/lib/toast';
+
 const BACKEND_URL = '/api';
+
+export function createEntityId(prefix: string): string {
+  const suffix = typeof crypto !== 'undefined' && 'randomUUID' in crypto
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  return `${prefix}-${suffix}`;
+}
 
 // Database Schema Models
 export interface UserMember {
@@ -11,6 +20,8 @@ export interface UserMember {
   department: string;
   capacity: number;
   status: 'disponible' | 'optimal' | 'surchargé' | 'critique' | 'invité';
+  bio?: string;
+  avatarUrl?: string;
 }
 
 export interface Milestone {
@@ -122,15 +133,51 @@ export async function fetchFromBackend(endpoint: string, options: RequestInit = 
   return res.status === 204 ? null : res.json();
 }
 
-function persistBackendChange(endpoint: string, options: RequestInit): void {
-  void fetchFromBackend(endpoint, options)
-    .then(() => syncDatabaseStorage())
-    .catch((error: unknown) => {
+function operationLabel(endpoint: string, method: string): string {
+  if (endpoint.includes('reassign-tasks')) return 'Réassignation des tâches réussie';
+  const action = method === 'DELETE' ? 'suppression'
+    : method === 'POST' ? 'création'
+    : method === 'PUT' || method === 'PATCH' ? 'mise à jour'
+    : 'opération';
+  const resource = endpoint.split('/')[1] || 'donnée';
+  const labels: Record<string, string> = {
+    team: 'membre',
+    projects: 'projet',
+    tasks: 'tâche',
+    sprints: 'sprint',
+    settings: 'paramètres',
+    notifications: 'notification',
+    'actionable-tasks': 'alerte',
+  };
+  return `${action.charAt(0).toUpperCase()}${action.slice(1)} ${labels[resource] || resource} réussie`;
+}
+
+function persistBackendChange(
+  endpoint: string,
+  options: RequestInit,
+  config: { showSuccessToast?: boolean; rethrow?: boolean } = {},
+): Promise<void> {
+  return fetchFromBackend(endpoint, options)
+    .then(() => {
+      if (config.showSuccessToast !== false) {
+        showToast('success', operationLabel(endpoint, options.method || 'POST'));
+      }
+      return syncDatabaseStorage().catch((syncError: unknown) => {
+        const message = syncError instanceof Error ? syncError.message : String(syncError);
+        console.error(`Backend operation succeeded but refresh failed (${endpoint}): ${message}`);
+        showToast('error', 'Enregistré, mais actualisation impossible', message);
+      });
+    })
+    .catch(async (error: unknown) => {
       const message = error instanceof Error ? error.message : String(error);
       console.error(`Backend request failed (${endpoint}): ${message}`);
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('klarity_api_error', { detail: { message } }));
+      try {
+        await syncDatabaseStorage();
+      } catch (syncError) {
+        console.error('Failed to restore local data after backend error:', syncError);
       }
+      showToast('error', 'Échec de l’opération', message);
+      if (config.rethrow) throw error;
     });
 }
 
@@ -141,6 +188,72 @@ function dateOnly(value: string | Date | null | undefined): string {
 
 function setServerItems<T>(key: string, value: T): void {
   setItem(key, value);
+}
+
+function mapNotifications(notifications: Array<Record<string, unknown>>): NotificationItem[] {
+  return notifications.map(item => ({
+    id: String(item.id),
+    type: item.type as NotificationItem['type'],
+    title: String(item.title || ''),
+    message: String(item.message || ''),
+    timestamp: String(item.timestamp || item.created_at || ''),
+    read: Boolean(item.read ?? item.is_read),
+    link: String(item.link || '#'),
+  }));
+}
+
+export async function syncStoredNotifications(): Promise<void> {
+  const notifications = await fetchFromBackend('/notifications') as Array<Record<string, unknown>>;
+  setServerItems('notifications', mapNotifications(notifications));
+}
+
+export function getStoredUserProfile(): UserMember | undefined {
+  const userId = getStoredUserSettings().userId || 'USR-1';
+  return getStoredTeam().find(member => String(member.id) === String(userId));
+}
+
+function isManagerRole(role: string | undefined): boolean {
+  const normalizedRole = (role || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+
+  return normalizedRole === 'manager';
+}
+
+export function canCompleteReviewedTasks(): boolean {
+  return isManagerRole(getStoredUserProfile()?.role);
+}
+
+export async function saveUserProfile(profile: {
+  name: string;
+  email: string;
+  bio: string;
+  avatarUrl: string;
+}): Promise<void> {
+  const currentProfile = getStoredUserProfile();
+  const userId = String(currentProfile?.id || getStoredUserSettings().userId || 'USR-1');
+  const updatedTeam = getStoredTeam().map(member => String(member.id) === userId
+    ? { ...member, ...profile }
+    : member);
+  setItem('team', updatedTeam);
+
+  await persistBackendChange(`/team/${encodeURIComponent(userId)}`, {
+    method: 'PUT',
+    body: JSON.stringify({
+      name: profile.name,
+      email: profile.email,
+      bio: profile.bio,
+      avatar_url: profile.avatarUrl,
+    }),
+  }, { rethrow: true });
+
+  createSystemNotification({
+    type: 'system',
+    title: 'Profil mis à jour',
+    message: 'Les informations de votre profil ont été enregistrées.',
+  });
 }
 
 export async function syncDatabaseStorage(): Promise<void> {
@@ -155,12 +268,14 @@ export async function syncDatabaseStorage(): Promise<void> {
   ]);
 
   setServerItems('team', (team as Array<Record<string, unknown>>).map(member => ({
-    id: member.id as string,
+    id: String(member.id),
     name: String(member.name || ''),
     email: String(member.email || ''),
     role: String(member.role || ''),
     department: String(member.department || 'Général'),
     capacity: Number(member.load_percentage ?? member.capacity ?? 0),
+    bio: String(member.bio || ''),
+    avatarUrl: String(member.avatar_url || member.avatarUrl || ''),
     status: member.status === 'invited' || member.status === 'invité' ? 'invité'
       : Number(member.load_percentage ?? member.capacity ?? 0) >= 100 ? 'critique'
       : Number(member.load_percentage ?? member.capacity ?? 0) >= 85 ? 'surchargé'
@@ -203,22 +318,14 @@ export async function syncDatabaseStorage(): Promise<void> {
     endDate: dateOnly((sprint.endDate || sprint.end_date) as string | Date),
     status: sprint.status as Sprint['status'],
   })));
-  setServerItems('notifications', (notifications as Array<Record<string, unknown>>).map(item => ({
-    id: String(item.id),
-    type: item.type as NotificationItem['type'],
-    title: String(item.title || ''),
-    message: String(item.message || ''),
-    timestamp: String(item.timestamp || item.created_at || ''),
-    read: Boolean(item.read ?? item.is_read),
-    link: String(item.link || '#'),
-  })));
+  setServerItems('notifications', mapNotifications(notifications as Array<Record<string, unknown>>));
   setServerItems('user_settings', {
     userId: 'USR-1',
     theme: (settings.theme || 'system') as UserSettings['theme'],
     accentColor: String(settings.accent_color || settings.accentColor || 'indigo'),
     density: (settings.density || 'comfortable') as UserSettings['density'],
     language: String(settings.language || 'fr'),
-    timezone: String(settings.timezone || 'Europe/Paris'),
+    timezone: String(settings.timezone || 'Africa/Douala'),
     dateFormat: String(settings.date_format || settings.dateFormat || 'DD/MM/YYYY'),
     emailNotifications: Boolean(settings.email_notifications ?? settings.emailNotifications ?? true),
     pushNotifications: Boolean(settings.push_notifications ?? settings.pushNotifications ?? true),
@@ -255,7 +362,7 @@ export function createSystemNotification(notification: {
   persistBackendChange('/notifications', {
     method: 'POST',
     body: JSON.stringify(newItem)
-  });
+  }, { showSuccessToast: false });
 
   return newItem;
 }
@@ -375,7 +482,7 @@ export function saveProject(project: Partial<Project> & { name: string; manager:
     });
   } else {
     const newProject: Project = {
-      id: project.id || `PRJ-${current.length + 1}`,
+      id: project.id || createEntityId('PRJ'),
       name: project.name,
       status: project.status || 'on_track',
       progress: project.progress || 0,
@@ -431,10 +538,15 @@ export function getStoredTasks(): Task[] {
 export function saveTask(task: Partial<Task> & { title: string; project: string }): Task[] {
   const current = getStoredTasks();
   const existingIndex = current.findIndex(t => t.id === task.id);
+  const previousTask = existingIndex >= 0 ? current[existingIndex] : undefined;
+
+  if (previousTask?.status === 'review' && task.status === 'done' && !canCompleteReviewedTasks()) {
+    showToast('error', 'Action réservée aux managers', 'Seul un manager peut terminer une tâche en revue.');
+    return current;
+  }
 
   let updated: Task[];
-  if (existingIndex >= 0) {
-    const previousTask = current[existingIndex];
+  if (previousTask) {
     updated = current.map((t, idx) => idx === existingIndex ? { ...t, ...task } as Task : t);
 
     // Trigger specific notification depending on what changed
@@ -459,7 +571,7 @@ export function saveTask(task: Partial<Task> & { title: string; project: string 
     }
   } else {
     const newTask: Task = {
-      id: task.id || `TSK-${current.length + 1}`,
+      id: task.id || createEntityId('TSK'),
       title: task.title,
       project: task.project,
       assignee: task.assignee || '',
@@ -482,8 +594,8 @@ export function saveTask(task: Partial<Task> & { title: string; project: string 
 
   setItem('tasks', updated);
   persistBackendChange(
-    existingIndex >= 0 ? `/tasks/${task.id}` : '/tasks',
-    { method: existingIndex >= 0 ? 'PUT' : 'POST', body: JSON.stringify(task) }
+    previousTask ? `/tasks/${task.id}` : '/tasks',
+    { method: previousTask ? 'PUT' : 'POST', body: JSON.stringify(task) }
   );
   return updated;
 }
@@ -599,9 +711,17 @@ export function saveSprint(sprint: Sprint): Sprint[] {
 }
 
 export function deleteSprint(id: string): Sprint[] {
+  const sprint = getStoredSprints().find(item => item.id === id);
   const updated = getStoredSprints().filter(sprint => sprint.id !== id);
   setItem('sprints', updated);
   persistBackendChange(`/sprints/${id}`, { method: 'DELETE' });
+  if (sprint) {
+    createSystemNotification({
+      type: 'system',
+      title: 'Sprint supprimé',
+      message: `Le sprint "${sprint.name}" a été supprimé.`,
+    });
+  }
   return updated;
 }
 
@@ -641,7 +761,7 @@ const defaultUserSettings: UserSettings = {
   accentColor: 'indigo',
   density: 'comfortable',
   language: 'fr',
-  timezone: 'Europe/Paris',
+  timezone: 'Africa/Douala',
   dateFormat: 'DD/MM/YYYY',
   emailNotifications: true,
   pushNotifications: true,
@@ -653,6 +773,7 @@ export function getStoredUserSettings(): UserSettings {
 
 export function saveUserSettings(settings: Partial<UserSettings>): UserSettings {
   const current = getStoredUserSettings();
+  const changed = Object.entries(settings).some(([key, value]) => current[key as keyof UserSettings] !== value);
   const updated: UserSettings = {
     ...current,
     ...settings,
@@ -661,11 +782,13 @@ export function saveUserSettings(settings: Partial<UserSettings>): UserSettings 
 
   setItem('user_settings', updated);
 
-  if (settings.timezone && settings.timezone !== current.timezone) {
+  const timezoneChanged = Boolean(settings.timezone && settings.timezone !== current.timezone);
+  const accentChanged = Boolean(settings.accentColor && settings.accentColor !== current.accentColor);
+  if (timezoneChanged) {
     try {
-      localStorage.setItem('klarity_timezone', settings.timezone);
+      localStorage.setItem('klarity_timezone', updated.timezone);
       window.dispatchEvent(new CustomEvent('klarity_timezone_changed', {
-        detail: { timezone: settings.timezone }
+        detail: { timezone: updated.timezone }
       }));
     } catch {
       // Ignore
@@ -674,16 +797,16 @@ export function saveUserSettings(settings: Partial<UserSettings>): UserSettings 
     createSystemNotification({
       type: 'system',
       title: 'Fuseau horaire actualisé',
-      message: `Le fuseau horaire du système a été basculé sur ${settings.timezone}. L'horloge et les plannings sont synchronisés.`
+      message: `Le fuseau horaire du système a été basculé sur ${updated.timezone}. L'horloge et les plannings sont synchronisés.`
     });
   }
 
-  if (settings.accentColor && settings.accentColor !== current.accentColor) {
+  if (accentChanged) {
     try {
-      localStorage.setItem('klarity_accent', settings.accentColor);
-      document.documentElement.setAttribute('data-accent', settings.accentColor);
+      localStorage.setItem('klarity_accent', updated.accentColor);
+      document.documentElement.setAttribute('data-accent', updated.accentColor);
       window.dispatchEvent(new CustomEvent('klarity_accent_changed', {
-        detail: { accent: settings.accentColor }
+        detail: { accent: updated.accentColor }
       }));
     } catch {
       // Ignore
@@ -699,7 +822,15 @@ export function saveUserSettings(settings: Partial<UserSettings>): UserSettings 
     createSystemNotification({
       type: 'system',
       title: "Couleur d'accentuation modifiée",
-      message: `La couleur de l'interface est désormais configurée sur : ${settings.accentColor}.`
+      message: `La couleur de l'interface est désormais configurée sur : ${updated.accentColor}.`
+    });
+  }
+
+  if (changed && !timezoneChanged && !accentChanged) {
+    createSystemNotification({
+      type: 'system',
+      title: 'Préférences mises à jour',
+      message: 'Vos préférences utilisateur ont été modifiées.',
     });
   }
 

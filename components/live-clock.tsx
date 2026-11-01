@@ -7,7 +7,7 @@ import { useAppearance } from '@/components/appearance-provider';
 
 export function LiveClock() {
   const { setSettingsSection } = useAppearance();
-  const [activeTimeZone, setActiveTimeZone] = useState<string>('Europe/Paris');
+  const [activeTimeZone, setActiveTimeZone] = useState<string>('Africa/Douala');
   const [timeState, setTimeState] = useState<{
     timeStr: string;
     dateStr: string;
@@ -58,7 +58,7 @@ export function LiveClock() {
 
       try {
         // Format time in the selected timezone
-        const timeStr = now.toLocaleTimeString('fr-FR', {
+        const timeStr = now.toLocaleTimeString('fr-CM', {
           timeZone: activeTimeZone,
           hour: '2-digit',
           minute: '2-digit',
@@ -67,7 +67,7 @@ export function LiveClock() {
         });
 
         // Format date in the selected timezone
-        const dateStr = now.toLocaleDateString('fr-FR', {
+        const dateStr = now.toLocaleDateString('fr-CM', {
           timeZone: activeTimeZone,
           weekday: 'short',
           day: 'numeric',
@@ -98,7 +98,7 @@ export function LiveClock() {
       } catch {
         // Fallback to local time if timezone format throws
         const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
-        const dateStr = now.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
+        const dateStr = now.toLocaleDateString('fr-CM', { weekday: 'short', day: 'numeric', month: 'short' });
         setTimeState({ timeStr, dateStr, timeZoneStr: activeTimeZone, offsetStr: 'UTC' });
       }
     }

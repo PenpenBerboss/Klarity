@@ -15,8 +15,11 @@ import {
   getStoredTeam, 
   getStoredProjects, 
   getStoredSprints, 
+  UserMember,
+  canCompleteReviewedTasks,
   saveSprint as saveSprintToDb,
   deleteSprint as deleteSprintFromDb,
+  createEntityId,
   Task, 
   Sprint 
 } from '@/lib/api';
@@ -28,17 +31,18 @@ const initialColumns = [
   { id: 'done', title: 'Terminé' },
 ];
 
-export function TasksTab() {
+export function TasksTab({ initialSearchQuery = '' }: { initialSearchQuery?: string }) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [sprints, setSprints] = useState<Sprint[]>([]);
-  const [teamMembers, setTeamMembers] = useState<string[]>([]);
+  const [teamProfiles, setTeamProfiles] = useState<UserMember[]>([]);
   const [projectsList, setProjectsList] = useState<string[]>([]);
+  const teamMembers = teamProfiles.filter(member => member.status !== 'invité').map(member => member.name);
   
   const [viewMode, setViewMode] = useState<'kanban' | 'calendar' | 'planning' | 'timeline'>('kanban');
   const [currentMonth, setCurrentMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1));
   const [selectedProject, setSelectedProject] = useState<string>('Tous les projets');
   const [selectedPriorityFilter, setSelectedPriorityFilter] = useState<string>('all');
-  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState<string>(initialSearchQuery);
 
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
@@ -52,8 +56,7 @@ export function TasksTab() {
       setTasks(getStoredTasks());
       setSprints(getStoredSprints());
       
-      const members = getStoredTeam().filter(m => m.status !== 'invité').map(m => m.name);
-      setTeamMembers(members);
+      setTeamProfiles(getStoredTeam().filter(member => member.status !== 'invité'));
 
       const projects = getStoredProjects().map(p => p.name);
       setProjectsList(projects);
@@ -79,10 +82,9 @@ export function TasksTab() {
   const filteredTasks = tasks.filter(task => {
     const matchesProject = selectedProject === 'Tous les projets' || task.project === selectedProject;
     const matchesPriority = selectedPriorityFilter === 'all' || task.priority === selectedPriorityFilter;
+    const normalizedQuery = searchQuery.trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('fr');
     const matchesSearch = searchQuery.trim() === '' || 
-      task.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-      task.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      task.assignee.toLowerCase().includes(searchQuery.toLowerCase());
+      `${task.title} ${task.id} ${task.project} ${task.assignee}`.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('fr').includes(normalizedQuery);
     return matchesProject && matchesPriority && matchesSearch;
   });
 
@@ -125,6 +127,11 @@ export function TasksTab() {
     const task = tasks.find(t => t.id === taskId);
     if (!task) return;
 
+    if (task.status === 'review' && newStatus === 'done' && !canCompleteReviewedTasks()) {
+      saveTaskToDb({ ...task, status: 'done' });
+      return;
+    }
+
     const updatedTasks = saveTaskToDb({ ...task, status: newStatus as any });
     setTasks(updatedTasks);
   };
@@ -151,7 +158,7 @@ export function TasksTab() {
   };
 
   const duplicateTask = (taskToDuplicate: any) => {
-    const newId = `TSK-${tasks.length + 10}`;
+    const newId = createEntityId('TSK');
     const duplicated = {
       ...taskToDuplicate,
       id: newId,
@@ -164,7 +171,7 @@ export function TasksTab() {
   };
 
   const openCreateModal = () => {
-    const newId = `TSK-${tasks.length + 10}`;
+    const newId = createEntityId('TSK');
     setEditingTask({
       id: newId,
       title: '',
@@ -195,7 +202,13 @@ export function TasksTab() {
   const handleUpdateSprints = (newSprints: Sprint[]) => {
     const newIds = new Set(newSprints.map(sprint => sprint.id));
     sprints.filter(sprint => !newIds.has(sprint.id)).forEach(sprint => deleteSprintFromDb(sprint.id));
-    newSprints.forEach(s => saveSprintToDb(s));
+    newSprints.forEach(sprint => {
+      const previous = sprints.find(item => item.id === sprint.id);
+      if (!previous || previous.name !== sprint.name || previous.startDate !== sprint.startDate
+        || previous.endDate !== sprint.endDate || previous.status !== sprint.status) {
+        saveSprintToDb(sprint);
+      }
+    });
     setSprints(newSprints);
   };
 
@@ -341,6 +354,7 @@ export function TasksTab() {
           updateTaskPriority={updateTaskPriority}
           updateTaskAssignee={updateTaskAssignee}
           teamMembers={teamMembers}
+          teamProfiles={teamProfiles}
           projectsList={projectsList}
         />
       )}
@@ -351,6 +365,7 @@ export function TasksTab() {
           setCurrentMonth={setCurrentMonth}
           filteredTasks={filteredTasks}
           openEditModal={openEditModal}
+          teamProfiles={teamProfiles}
         />
       )}
 
@@ -361,12 +376,14 @@ export function TasksTab() {
           sprints={sprints}
           setSprints={handleUpdateSprints}
           openEditModal={openEditModal}
+          teamProfiles={teamProfiles}
         />
       )}
 
       {viewMode === 'timeline' && (
         <TimelineView 
           filteredTasks={filteredTasks}
+          teamProfiles={teamProfiles}
         />
       )}
 

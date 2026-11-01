@@ -6,9 +6,8 @@ import { getStoredUserSettings, saveUserSettings, COMMON_TIMEZONES } from '@/lib
 
 export function LanguageSection() {
   const [language, setLanguage] = useState('fr');
-  const [timezone, setTimezone] = useState('Europe/Paris');
+  const [timezone, setTimezone] = useState('Africa/Douala');
   const [dateFormat, setDateFormat] = useState('DD/MM/YYYY');
-  const [savedSuccess, setSavedSuccess] = useState(false);
   const [previewTime, setPreviewTime] = useState<string>('');
   const [previewDate, setPreviewDate] = useState<string>('');
 
@@ -33,14 +32,14 @@ export function LanguageSection() {
     function updatePreview() {
       const now = new Date();
       try {
-        const time = now.toLocaleTimeString('fr-FR', {
+        const time = now.toLocaleTimeString('fr-CM', {
           timeZone: timezone,
           hour: '2-digit',
           minute: '2-digit',
           second: '2-digit',
           hour12: false,
         });
-        const date = now.toLocaleDateString('fr-FR', {
+        const date = now.toLocaleDateString('fr-CM', {
           timeZone: timezone,
           weekday: 'long',
           day: 'numeric',
@@ -64,8 +63,6 @@ export function LanguageSection() {
     setTimezone(newTz);
     // Instant live update
     saveUserSettings({ timezone: newTz });
-    setSavedSuccess(true);
-    setTimeout(() => setSavedSuccess(false), 3000);
   };
 
   const handleSave = (e?: React.FormEvent) => {
@@ -75,8 +72,6 @@ export function LanguageSection() {
       timezone,
       dateFormat,
     });
-    setSavedSuccess(true);
-    setTimeout(() => setSavedSuccess(false), 3500);
   };
 
   const selectedTzObj = COMMON_TIMEZONES.find(t => t.value === timezone);
@@ -92,15 +87,6 @@ export function LanguageSection() {
           Configurez le fuseau horaire de l&apos;équipe, la langue de l&apos;interface et les formats d&apos;affichage.
         </p>
       </div>
-
-      {savedSuccess && (
-        <div className="p-3.5 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 rounded-xl flex items-center gap-2.5 text-xs text-emerald-800 dark:text-emerald-300 font-medium animate-in fade-in slide-in-from-top-1">
-          <div className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0">
-            <Check size={12} />
-          </div>
-          <span>Préférences enregistrées avec succès dans la base de données. L&apos;horloge et le système ont été synchronisés !</span>
-        </div>
-      )}
 
       {/* Live Timezone Preview Card */}
       <div className="p-5 rounded-2xl bg-gradient-to-br from-indigo-50/70 via-white to-gray-50 dark:from-indigo-950/20 dark:via-gray-900 dark:to-gray-950 border border-indigo-100 dark:border-indigo-900/50 shadow-xs space-y-3">
@@ -189,7 +175,7 @@ export function LanguageSection() {
             onChange={(e) => setLanguage(e.target.value)}
             className="w-full px-3.5 py-2.5 bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-xl text-sm focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 dark:text-white"
           >
-            <option value="fr">Français (France &amp; Francophonie)</option>
+            <option value="fr">Français (Cameroun)</option>
             <option value="en">English (International)</option>
             <option value="es">Español</option>
           </select>
