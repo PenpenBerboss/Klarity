@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { Download, Loader2, FileText, CheckCircle2, TrendingUp, Users, Target, ShieldCheck } from 'lucide-react';
 import { useNotifications } from '@/components/notification-provider';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import { getStoredProjects, getStoredSprints, getStoredTasks, getStoredTeam } from '@/lib/api';
 
 const ChartLoadingFallback = () => (
   <div className="h-72 w-full flex items-center justify-center bg-gray-50/50 dark:bg-gray-800/30 rounded-xl animate-pulse">
@@ -36,6 +37,28 @@ const CumulativeFlowChart = dynamic(() => import('@/components/charts').then(m =
 export function ReportsTab() {
   const [isExporting, setIsExporting] = useState(false);
   const { addNotification } = useNotifications();
+  const [metrics, setMetrics] = useState({ completion: 0, velocity: 0, budget: 0, workload: 0 });
+
+  useEffect(() => {
+    const refresh = () => {
+      const projects = getStoredProjects();
+      const tasks = getStoredTasks();
+      const sprints = getStoredSprints().filter(sprint => sprint.status === 'completed');
+      const team = getStoredTeam().filter(member => member.status !== 'invité');
+      const allocated = projects.reduce((sum, project) => sum + project.totalBudget, 0);
+      const spent = projects.reduce((sum, project) => sum + project.budget, 0);
+      setMetrics({
+        completion: tasks.length ? Math.round(tasks.filter(task => task.status === 'done').length / tasks.length * 100) : 0,
+        velocity: sprints.length ? Math.round(sprints.reduce((sum, sprint) =>
+          sum + tasks.filter(task => task.sprintId === sprint.id && task.status === 'done').length, 0) / sprints.length) : 0,
+        budget: allocated ? Math.round(spent / allocated * 100) : 0,
+        workload: team.length ? Math.round(team.reduce((sum, member) => sum + member.capacity, 0) / team.length) : 0,
+      });
+    };
+    refresh();
+    window.addEventListener('klarity_db_update', refresh);
+    return () => window.removeEventListener('klarity_db_update', refresh);
+  }, []);
 
   const handleExportPDF = async () => {
     const reportsElement = document.getElementById('reports-container');
@@ -65,11 +88,11 @@ export function ReportsTab() {
       pdf.setTextColor(255, 255, 255);
       pdf.setFont('helvetica', 'bold');
       pdf.setFontSize(14);
-      pdf.text("RAPPORT D'ACTIVITÉ & METRIQUES KPI 2026", 14, 12);
+      pdf.text(`RAPPORT D'ACTIVITÉ & METRIQUES KPI ${new Date().getFullYear()}`, 14, 12);
 
       pdf.setFont('helvetica', 'normal');
       pdf.setFontSize(8);
-      pdf.text(`Généré le : ${new Date().toLocaleDateString('fr-FR')} | Auteur : Samuel Mbarga`, 14, 18);
+      pdf.text(`Généré le : ${new Date().toLocaleDateString('fr-FR')}`, 14, 18);
 
       // Add image below header
       const imgWidth = pdfWidth - 28;
@@ -144,7 +167,7 @@ export function ReportsTab() {
           </div>
           <div>
             <p className="text-[11px] font-medium text-gray-400 uppercase tracking-wider">Livraison à temps</p>
-            <p className="text-lg font-bold text-gray-900 dark:text-white">94.2%</p>
+            <p className="text-lg font-bold text-gray-900 dark:text-white">{metrics.completion}%</p>
           </div>
         </div>
 
@@ -154,7 +177,7 @@ export function ReportsTab() {
           </div>
           <div>
             <p className="text-[11px] font-medium text-gray-400 uppercase tracking-wider">Vélocité Moyenne</p>
-            <p className="text-lg font-bold text-gray-900 dark:text-white">48 pts / sprint</p>
+            <p className="text-lg font-bold text-gray-900 dark:text-white">{metrics.velocity} tâches / sprint</p>
           </div>
         </div>
 
@@ -164,7 +187,7 @@ export function ReportsTab() {
           </div>
           <div>
             <p className="text-[11px] font-medium text-gray-400 uppercase tracking-wider">Respect Budget</p>
-            <p className="text-lg font-bold text-gray-900 dark:text-white">98.5%</p>
+            <p className="text-lg font-bold text-gray-900 dark:text-white">{metrics.budget}%</p>
           </div>
         </div>
 
@@ -173,8 +196,8 @@ export function ReportsTab() {
             <Users size={20} />
           </div>
           <div>
-            <p className="text-[11px] font-medium text-gray-400 uppercase tracking-wider">Taux d&apos;engagement</p>
-            <p className="text-lg font-bold text-gray-900 dark:text-white">88%</p>
+            <p className="text-[11px] font-medium text-gray-400 uppercase tracking-wider">Charge moyenne de l&apos;équipe</p>
+            <p className="text-lg font-bold text-gray-900 dark:text-white">{metrics.workload}%</p>
           </div>
         </div>
       </div>
@@ -198,8 +221,8 @@ export function ReportsTab() {
           <div className="bg-white dark:bg-gray-900 p-5 sm:p-6 rounded-2xl shadow-xs border border-gray-200/80 dark:border-gray-800">
             <div className="flex justify-between items-center mb-4">
               <div>
-                <h2 className="text-sm sm:text-base font-bold text-gray-900 dark:text-white">Vélocité de l&apos;équipe (Story points)</h2>
-                <p className="text-xs text-gray-400">Points de complexité livrés par sprint</p>
+                <h2 className="text-sm sm:text-base font-bold text-gray-900 dark:text-white">Tâches terminées par sprint</h2>
+                <p className="text-xs text-gray-400">Tâches terminées comparées au total par sprint</p>
               </div>
               <FileText size={18} className="text-emerald-500" />
             </div>
@@ -210,8 +233,8 @@ export function ReportsTab() {
           <div className="bg-white dark:bg-gray-900 p-5 sm:p-6 rounded-2xl shadow-xs border border-gray-200/80 dark:border-gray-800">
             <div className="flex justify-between items-center mb-4">
               <div>
-                <h2 className="text-sm sm:text-base font-bold text-gray-900 dark:text-white">Diagramme de Flux Cumulé (CFD)</h2>
-                <p className="text-xs text-gray-400">Répartition du volume de travail dans le pipeline</p>
+                <h2 className="text-sm sm:text-base font-bold text-gray-900 dark:text-white">Répartition des tâches par statut</h2>
+                <p className="text-xs text-gray-400">État actuel du pipeline</p>
               </div>
             </div>
             <CumulativeFlowChart />

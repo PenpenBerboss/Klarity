@@ -2,15 +2,15 @@
 -- SCRIPT D'INSERTION DES DONNÉES INITIALES (SEED DATA)
 -- ========================================================
 
-USE klarity_db;
+USE klarity;
 
 -- 1. Insertion des Utilisateurs
-INSERT INTO users (id, name, email, role, load_percentage, status) VALUES
-('USR-1', 'Samuel Mbarga', 'samuel.mbarga@klarity.cm', 'Lead Architecte & Fullstack', 75, 'busy'),
-('USR-2', 'Chantal Abena', 'chantal.abena@klarity.cm', 'Chef de Projet Senior', 60, 'available'),
-('USR-3', 'Emmanuel Nguema', 'emmanuel.nguema@klarity.cm', 'Ingénieur DevOps & Cloud', 80, 'busy'),
-('USR-4', 'Nathalie Ekotto', 'nathalie.ekotto@klarity.cm', 'UI/UX Designer', 40, 'available'),
-('USR-5', 'Dieudonné Tchato', 'dieudonne.tchato@klarity.cm', 'Développeur Backend', 50, 'away');
+INSERT INTO users (id, name, email, role, department, load_percentage, status) VALUES
+('USR-1', 'Berboss Penpen', 'berboss.penpen@klarity.cm', 'Lead Architecte & Fullstack', 'Ingénierie', 75, 'busy'),
+('USR-2', 'Manuel Kuate', 'manuel.kuate@klarity.cm', 'Chef de Projet Senior', 'Produit', 60, 'available'),
+('USR-3', 'Leslie Moumeni', 'leslie.moumeni@klarity.cm', 'Ingénieur DevOps & Cloud', 'Infrastructure', 80, 'busy'),
+('USR-4', 'Maxwell Siewe', 'maxwell.siewe@klarity.cm', 'UI/UX Designer', 'Design', 40, 'available'),
+('USR-5', 'Dieudonné Tchato', 'dieudonne.tchato@klarity.cm', 'Développeur Backend', 'Ingénierie', 50, 'away');
 
 -- 2. Insertion des Projets
 INSERT INTO projects (id, name, description, manager_id, status, priority, budget, budget_spent, progress, start_date, end_date) VALUES

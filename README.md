@@ -91,6 +91,16 @@ Propose 4 vues interchangeables adaptées aux méthodologies modernes :
 - **Icônes** : [Lucide React](https://lucide.dev/)
 - **Thématisation** : `next-themes` (Support natif du mode sombre)
 
+## 🔌 Démarrage avec la base de données
+
+Le frontend charge les projets, tâches, sprints, membres, notifications, paramètres et alertes depuis l’API Express/MySQL. Les routes `/api/*` de Next.js ne fournissent pas de données de démonstration ; elles transmettent les requêtes au backend.
+
+1. Configurez MySQL et le backend en suivant [backend/README.md](./backend/README.md). Utilisez `schema.sql` uniquement pour une base neuve ; appliquez la migration non destructive documentée si vous avez déjà une base Klarity.
+2. À la racine, configurez `BACKEND_URL` dans `.env.local` (par défaut `http://127.0.0.1:5000/api`).
+3. Lancez le backend (`npm run dev` dans `backend`) puis le frontend (`npm run dev` à la racine).
+
+Si l’API ou MySQL est indisponible, l’interface affiche une erreur de connexion au lieu de retomber sur des données mockées. `localStorage` ne sert qu’à mettre en cache les réponses du backend.
+
 ---
 
 ## 📄 Licence

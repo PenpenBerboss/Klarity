@@ -35,8 +35,8 @@ export function ProjectModal({
     status: 'on_track',
     progress: 0,
     budget: 0,
-    totalBudget: 50,
-    manager: managers[0] || 'Samuel Mbarga',
+    totalBudget: 0,
+    manager: managers[0] || '',
     dueDate: new Date().toISOString().split('T')[0],
     description: '',
     milestones: []
@@ -68,8 +68,8 @@ export function ProjectModal({
         status: 'on_track',
         progress: 0,
         budget: 0,
-        totalBudget: 50,
-        manager: managers[0] || 'Samuel Mbarga',
+        totalBudget: 0,
+        manager: managers[0] || '',
         dueDate: new Date().toISOString().split('T')[0],
         description: '',
         milestones: []
@@ -183,7 +183,7 @@ export function ProjectModal({
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-gray-700 dark:text-gray-300">Budget Consommé (k$)</label>
+              <label className="text-xs font-medium text-gray-700 dark:text-gray-300">Budget consommé (FCFA)</label>
               <input 
                 type="number" 
                 min="0"
@@ -194,7 +194,7 @@ export function ProjectModal({
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-gray-700 dark:text-gray-300">Budget Total Alloué (k$)</label>
+              <label className="text-xs font-medium text-gray-700 dark:text-gray-300">Budget total alloué (FCFA)</label>
               <input 
                 type="number" 
                 required
@@ -214,6 +214,7 @@ export function ProjectModal({
                 onChange={e => setFormData({...formData, manager: e.target.value})} 
                 className="w-full px-3 py-2 bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 dark:text-white cursor-pointer"
               >
+                <option value="">Aucun responsable</option>
                 {managers.map(m => <option key={m} value={m}>{m}</option>)}
               </select>
             </div>

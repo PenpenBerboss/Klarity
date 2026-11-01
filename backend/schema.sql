@@ -16,6 +16,7 @@ DROP TABLE IF EXISTS sprints;
 DROP TABLE IF EXISTS milestones;
 DROP TABLE IF EXISTS projects;
 DROP TABLE IF EXISTS notifications;
+DROP TABLE IF EXISTS actionable_tasks;
 DROP TABLE IF EXISTS user_settings;
 DROP TABLE IF EXISTS users;
 
@@ -27,9 +28,10 @@ CREATE TABLE users (
     name VARCHAR(100) NOT NULL,
     email VARCHAR(150) NOT NULL UNIQUE,
     role VARCHAR(100) NOT NULL DEFAULT 'Développeur Fullstack',
+    department VARCHAR(100) NOT NULL DEFAULT 'Général',
     avatar_url VARCHAR(255) NULL,
     load_percentage INT NOT NULL DEFAULT 50,
-    status ENUM('available', 'busy', 'away', 'offline') DEFAULT 'available',
+    status ENUM('available', 'busy', 'away', 'offline', 'invited') DEFAULT 'available',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -131,7 +133,19 @@ CREATE TABLE notifications (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 10. Table des Paramètres Utilisateur & Fuseau Horaire
+-- 10. Table des points de blocage affichés sur le tableau de bord
+CREATE TABLE actionable_tasks (
+    id VARCHAR(50) PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    project VARCHAR(150) NOT NULL,
+    assignee VARCHAR(150) NOT NULL,
+    status ENUM('blocked', 'delayed', 'warning', 'completed') NOT NULL DEFAULT 'blocked',
+    reason TEXT NOT NULL,
+    impact TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 11. Table des Paramètres Utilisateur & Fuseau Horaire
 CREATE TABLE user_settings (
     user_id VARCHAR(50) PRIMARY KEY,
     theme ENUM('light', 'dark', 'system') DEFAULT 'system',

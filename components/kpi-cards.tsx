@@ -9,35 +9,43 @@ export function KpiCards() {
   const [stats, setStats] = useState({
     atRiskProjects: 0,
     totalProjects: 0,
-    onTimeRate: 87,
-    budgetConsumedPercent: 64,
+    completionRate: 0,
+    budgetConsumedPercent: 0,
     totalTasks: 0,
-    completedTasks: 0
+    completedTasks: 0,
+    sprintVelocity: 0,
   });
 
   useEffect(() => {
     const computeStats = () => {
       const projects = getStoredProjects();
       const tasks = getStoredTasks();
+      const sprints = getStoredSprints();
 
       const atRiskCount = projects.filter(p => p.status === 'at_risk' || p.status === 'delayed').length;
       const totalProj = projects.length;
 
       const totalBudgetSum = projects.reduce((acc, p) => acc + (p.totalBudget || 0), 0);
       const spentBudgetSum = projects.reduce((acc, p) => acc + (p.budget || 0), 0);
-      const budgetPercent = totalBudgetSum > 0 ? Math.round((spentBudgetSum / totalBudgetSum) * 100) : 60;
+      const budgetPercent = totalBudgetSum > 0 ? Math.round((spentBudgetSum / totalBudgetSum) * 100) : 0;
 
       const completedCount = tasks.filter(t => t.status === 'done').length;
       const totalT = tasks.length;
-      const onTime = totalT > 0 ? Math.round((completedCount / totalT) * 100) : 85;
+      const completionRate = totalT > 0 ? Math.round((completedCount / totalT) * 100) : 0;
+      const completedSprints = sprints.filter(sprint => sprint.status === 'completed');
+      const sprintVelocity = completedSprints.length > 0
+        ? Math.round(completedSprints.reduce((total, sprint) =>
+          total + tasks.filter(task => task.sprintId === sprint.id && task.status === 'done').length, 0) / completedSprints.length)
+        : 0;
 
       setStats({
         atRiskProjects: atRiskCount,
         totalProjects: totalProj,
-        onTimeRate: onTime,
+        completionRate,
         budgetConsumedPercent: budgetPercent,
         totalTasks: totalT,
-        completedTasks: completedCount
+        completedTasks: completedCount,
+        sprintVelocity
       });
     };
 
@@ -60,9 +68,9 @@ export function KpiCards() {
       iconColor: "text-red-600 dark:text-red-400"
     },
     {
-      title: "Respect des délais",
-      value: `${stats.onTimeRate}%`,
-      subtext: "Calculé sur les tâches",
+      title: "Tâches terminées",
+      value: `${stats.completionRate}%`,
+      subtext: "Part des tâches au statut terminé",
       icon: Clock,
       trend: `${stats.completedTasks}/${stats.totalTasks} livrables finalisés`,
       trendColor: "text-emerald-600 dark:text-emerald-400",
@@ -81,10 +89,10 @@ export function KpiCards() {
     },
     {
       title: "Vélocité moyenne",
-      value: "42 pts",
-      subtext: "Par sprint / équipe",
+      value: `${stats.sprintVelocity}`,
+      subtext: "Tâches terminées par sprint clôturé",
       icon: TrendingUp,
-      trend: "+5 pts vs S-1",
+      trend: "Moyenne des sprints terminés",
       trendColor: "text-emerald-600 dark:text-emerald-400",
       bgColor: "bg-indigo-50 dark:bg-indigo-500/10",
       iconColor: "text-indigo-600 dark:text-indigo-400"

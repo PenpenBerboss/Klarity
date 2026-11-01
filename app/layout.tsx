@@ -4,6 +4,7 @@ import { Inter } from 'next/font/google';
 import { ThemeProvider } from '@/components/theme-provider';
 import { AppearanceProvider } from '@/components/appearance-provider';
 import { NotificationProvider } from '@/components/notification-provider';
+import { DatabaseProvider } from '@/components/database-provider';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -25,11 +26,13 @@ export default function RootLayout({
     <html lang="fr" suppressHydrationWarning data-accent="indigo" data-density="comfortable" className={inter.variable}>
       <body suppressHydrationWarning className={`${inter.className} antialiased bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 min-h-screen transition-colors duration-200`}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange={false}>
-          <AppearanceProvider>
-            <NotificationProvider>
-              {children}
-            </NotificationProvider>
-          </AppearanceProvider>
+          <DatabaseProvider>
+            <AppearanceProvider>
+              <NotificationProvider>
+                {children}
+              </NotificationProvider>
+            </AppearanceProvider>
+          </DatabaseProvider>
         </ThemeProvider>
       </body>
     </html>

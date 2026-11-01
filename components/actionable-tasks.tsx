@@ -32,10 +32,10 @@ export function ActionableTasks() {
       setTasks(storedTasks);
 
       const team = getStoredTeam().filter(m => m.status !== 'invité').map(m => m.name);
-      setTeamMembers(team.length > 0 ? team : ['Samuel Mbarga']);
+      setTeamMembers(team);
 
       const projs = getStoredProjects().map(p => p.name);
-      setProjects(projs.length > 0 ? projs : ['Refonte ERP']);
+      setProjects(projs);
 
       if (projs.length > 0 && team.length > 0) {
         setFormData(prev => ({
@@ -58,8 +58,8 @@ export function ActionableTasks() {
     const newTask: ActionableTask = {
       id: `TSK-${Math.floor(Math.random() * 1000) + 1000}`,
       title: formData.title,
-      project: formData.project || projects[0] || 'Refonte ERP',
-      assignee: formData.assignee || teamMembers[0] || 'Samuel Mbarga',
+      project: formData.project || projects[0] || '',
+      assignee: formData.assignee || teamMembers[0] || '',
       status: formData.status,
       reason: formData.reason,
       impact: formData.impact

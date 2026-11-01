@@ -17,19 +17,33 @@ exports.getUserSettings = async (req, res) => {
 // Mettre à jour les paramètres d'un utilisateur
 exports.updateUserSettings = async (req, res) => {
   const userId = req.body.userId || 'USR-1';
-  const { theme, accent_color, density, email_notifications, push_notifications } = req.body;
+  const theme = req.body.theme;
+  const accent_color = req.body.accent_color ?? req.body.accentColor;
+  const density = req.body.density;
+  const email_notifications = req.body.email_notifications ?? req.body.emailNotifications;
+  const push_notifications = req.body.push_notifications ?? req.body.pushNotifications;
+  const timezone = req.body.timezone;
+  const language = req.body.language;
+  const date_format = req.body.date_format ?? req.body.dateFormat;
 
   try {
     await db.query(
-      `INSERT INTO user_settings (user_id, theme, accent_color, density, email_notifications, push_notifications)
-       VALUES (?, ?, ?, ?, ?, ?)
+      `INSERT INTO user_settings
+         (user_id, theme, accent_color, density, language, timezone, date_format, email_notifications, push_notifications)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON DUPLICATE KEY UPDATE 
          theme = COALESCE(?, theme),
          accent_color = COALESCE(?, accent_color),
          density = COALESCE(?, density),
+         language = COALESCE(?, language),
+         timezone = COALESCE(?, timezone),
+         date_format = COALESCE(?, date_format),
          email_notifications = COALESCE(?, email_notifications),
          push_notifications = COALESCE(?, push_notifications)`,
-      [userId, theme || 'system', accent_color || 'indigo', density || 'comfortable', email_notifications ?? true, push_notifications ?? true, theme, accent_color, density, email_notifications, push_notifications]
+      [userId, theme || 'system', accent_color || 'indigo', density || 'comfortable',
+        language || 'fr', timezone || 'Europe/Paris', date_format || 'DD/MM/YYYY',
+        email_notifications ?? true, push_notifications ?? true,
+        theme, accent_color, density, language, timezone, date_format, email_notifications, push_notifications]
     );
 
     res.json({ message: 'Paramètres mis à jour avec succès' });

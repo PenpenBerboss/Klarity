@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { getStoredUserSettings, saveUserSettings } from '@/lib/api';
 
 export type AccentColor = 'indigo' | 'emerald' | 'purple' | 'amber' | 'blue';
 export type Density = 'comfortable' | 'compact';
@@ -34,14 +35,15 @@ export function AppearanceProvider({ children }: { children: React.ReactNode }) 
   useEffect(() => {
     const timer = setTimeout(() => {
       try {
-        const savedAccent = localStorage.getItem('klarity_accent') as AccentColor;
+        const settings = getStoredUserSettings();
+        const savedAccent = (localStorage.getItem('klarity_accent') || settings.accentColor) as AccentColor;
         if (savedAccent && ['indigo', 'emerald', 'purple', 'amber', 'blue'].includes(savedAccent)) {
           setAccentColorState(savedAccent);
           document.documentElement.setAttribute('data-accent', savedAccent);
         } else {
           document.documentElement.setAttribute('data-accent', 'indigo');
         }
-        const savedDensity = localStorage.getItem('klarity_density') as Density;
+        const savedDensity = (localStorage.getItem('klarity_density') || settings.density) as Density;
         if (savedDensity && ['comfortable', 'compact'].includes(savedDensity)) {
           setDensityState(savedDensity);
           document.documentElement.setAttribute('data-density', savedDensity);
@@ -66,14 +68,7 @@ export function AppearanceProvider({ children }: { children: React.ReactNode }) 
       localStorage.setItem('klarity_accent', color);
       window.dispatchEvent(new CustomEvent('klarity_accent_changed', { detail: { accent: color } }));
       
-      // Persist to backend API asynchronously
-      fetch('/api/user-settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ accentColor: color }),
-      }).catch(() => {
-        // Fallback handled locally
-      });
+      saveUserSettings({ accentColor: color });
     } catch {
       // Ignore
     }
@@ -87,6 +82,7 @@ export function AppearanceProvider({ children }: { children: React.ReactNode }) 
     } catch {
       // Ignore
     }
+    saveUserSettings({ density: d });
   }, []);
 
   const getAccentClasses = useCallback(() => {

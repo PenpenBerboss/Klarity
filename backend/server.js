@@ -8,6 +8,7 @@ const sprintRoutes = require('./routes/sprintRoutes');
 const teamRoutes = require('./routes/teamRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const settingRoutes = require('./routes/settingRoutes');
+const actionableTaskRoutes = require('./routes/actionableTaskRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -23,6 +24,7 @@ app.use('/api/sprints', sprintRoutes);
 app.use('/api/team', teamRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/settings', settingRoutes);
+app.use('/api/actionable-tasks', actionableTaskRoutes);
 
 // Health Check Endpoint
 app.get('/api/health', (req, res) => {

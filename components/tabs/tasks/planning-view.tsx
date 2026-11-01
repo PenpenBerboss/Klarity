@@ -42,7 +42,7 @@ export function PlanningView({ tasks, setTasks, sprints, setSprints, openEditMod
     const taskId = e.dataTransfer.getData('taskId');
     if (taskId) {
       const task = tasks.find(t => t.id === taskId);
-      if (task && task.assignee === 'Samuel Mbarga' && task.sprintId !== sprintId) {
+      if (task && task.sprintId !== sprintId) {
         addNotification({
           type: 'task_assigned',
           title: 'Tâche Réassignée',

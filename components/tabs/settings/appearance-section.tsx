@@ -5,6 +5,7 @@ import { useTheme } from 'next-themes';
 import { useAppearance, AccentColor, Density } from '@/components/appearance-provider';
 import { Sun, Moon, Monitor, Check, Palette, Sliders } from 'lucide-react';
 import { clsx } from 'clsx';
+import { saveUserSettings } from '@/lib/api';
 
 export function AppearanceSection() {
   const { theme, setTheme, resolvedTheme } = useTheme();
@@ -23,6 +24,10 @@ export function AppearanceSection() {
     { id: 'amber', name: 'Ambre', colorClass: 'bg-amber-600', borderClass: 'border-amber-600' },
     { id: 'blue', name: 'Bleu Océan', colorClass: 'bg-blue-600', borderClass: 'border-blue-600' },
   ];
+  const updateTheme = (nextTheme: 'light' | 'dark' | 'system') => {
+    setTheme(nextTheme);
+    saveUserSettings({ theme: nextTheme });
+  };
 
   if (!mounted) {
     return (
@@ -51,7 +56,7 @@ export function AppearanceSection() {
           {/* Light Theme */}
           <button 
             type="button"
-            onClick={() => setTheme('light')}
+            onClick={() => updateTheme('light')}
             className={clsx(
               "relative border-2 rounded-xl p-2 text-left transition-all cursor-pointer group",
               theme === 'light' 
@@ -88,7 +93,7 @@ export function AppearanceSection() {
           {/* Dark Theme */}
           <button 
             type="button"
-            onClick={() => setTheme('dark')}
+            onClick={() => updateTheme('dark')}
             className={clsx(
               "relative border-2 rounded-xl p-2 text-left transition-all cursor-pointer group",
               theme === 'dark' 
@@ -125,7 +130,7 @@ export function AppearanceSection() {
           {/* System Theme */}
           <button 
             type="button"
-            onClick={() => setTheme('system')}
+            onClick={() => updateTheme('system')}
             className={clsx(
               "relative border-2 rounded-xl p-2 text-left transition-all cursor-pointer group",
               theme === 'system' 

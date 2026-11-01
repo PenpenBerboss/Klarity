@@ -1,132 +1,138 @@
+const crypto = require('node:crypto');
 const db = require('../config/db');
 
-// Récupérer tous les projets avec leurs jalons et responsable
+async function findManagerId(connection, project) {
+  if (project.manager_id) return project.manager_id;
+  if (!project.manager) return null;
+  const [users] = await connection.query('SELECT id FROM users WHERE name = ? LIMIT 1', [project.manager]);
+  return users[0]?.id || null;
+}
+
 exports.getAllProjects = async (req, res) => {
   try {
     const [projects] = await db.query(`
-      SELECT p.*, u.name AS manager_name 
-      FROM projects p 
-      LEFT JOIN users u ON p.manager_id = u.id 
+      SELECT p.*, u.name AS manager_name
+      FROM projects p
+      LEFT JOIN users u ON p.manager_id = u.id
       ORDER BY p.created_at DESC
     `);
-
-    // Récupérer les jalons pour chaque projet
-    for (let project of projects) {
+    for (const project of projects) {
       const [milestones] = await db.query(
         'SELECT id, title, due_date AS dueDate, completed FROM milestones WHERE project_id = ? ORDER BY due_date ASC',
         [project.id]
       );
       project.milestones = milestones;
     }
-
     res.json(projects);
   } catch (err) {
     res.status(500).json({ error: 'Erreur lors de la récupération des projets', details: err.message });
   }
 };
 
-// Créer un nouveau projet
 exports.createProject = async (req, res) => {
-  const { name, description, manager_id, status, priority, budget, start_date, end_date, milestones } = req.body;
-  const id = `PRJ-${Date.now().toString().slice(-4)}`;
-
+  const connection = await db.getConnection();
+  const project = req.body;
+  const id = project.id || `PRJ-${crypto.randomUUID()}`;
   try {
-    await db.query(
-      `INSERT INTO projects (id, name, description, manager_id, status, priority, budget, start_date, end_date)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [id, name, description || '', manager_id || null, status || 'on_track', priority || 'medium', budget || 0, start_date || null, end_date || null]
+    await connection.beginTransaction();
+    const managerId = await findManagerId(connection, project);
+    await connection.query(
+      `INSERT INTO projects
+        (id, name, description, manager_id, status, budget, budget_spent, progress, start_date, end_date)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [id, project.name, project.description || '', managerId, project.status || 'on_track',
+        project.totalBudget ?? project.budget ?? 0, project.budget ?? 0, project.progress || 0,
+        project.startDate || null, project.dueDate || project.endDate || null]
     );
+    for (const milestone of project.milestones || []) {
+      await connection.query(
+        'INSERT INTO milestones (id, project_id, title, due_date, completed) VALUES (?, ?, ?, ?, ?)',
+        [milestone.id || `MLS-${crypto.randomUUID()}`, id, milestone.title, milestone.date || milestone.dueDate, Boolean(milestone.completed)]
+      );
+    }
+    await connection.commit();
+    res.status(201).json({ message: 'Projet créé avec succès', projectId: id });
+  } catch (err) {
+    await connection.rollback();
+    res.status(500).json({ error: 'Erreur lors de la création du projet', details: err.message });
+  } finally {
+    connection.release();
+  }
+};
 
-    if (milestones && Array.isArray(milestones)) {
-      for (let m of milestones) {
-        const mId = `MLS-${Date.now().toString().slice(-4)}-${Math.floor(Math.random() * 100)}`;
-        await db.query(
+exports.updateProject = async (req, res) => {
+  const connection = await db.getConnection();
+  const { id } = req.params;
+  const project = req.body;
+  try {
+    await connection.beginTransaction();
+    const managerId = await findManagerId(connection, project);
+    const [result] = await connection.query(
+      `UPDATE projects SET
+        name = COALESCE(?, name), description = COALESCE(?, description),
+        manager_id = COALESCE(?, manager_id), status = COALESCE(?, status),
+        budget = COALESCE(?, budget), budget_spent = COALESCE(?, budget_spent),
+        progress = COALESCE(?, progress), end_date = COALESCE(?, end_date)
+       WHERE id = ?`,
+      [project.name ?? null, project.description ?? null, managerId, project.status ?? null,
+        project.totalBudget ?? null, project.budget ?? null, project.progress ?? null,
+        project.dueDate || project.endDate || null, id]
+    );
+    if (project.milestones) {
+      await connection.query('DELETE FROM milestones WHERE project_id = ?', [id]);
+      for (const milestone of project.milestones) {
+        await connection.query(
           'INSERT INTO milestones (id, project_id, title, due_date, completed) VALUES (?, ?, ?, ?, ?)',
-          [mId, id, m.title, m.dueDate, m.completed || false]
+          [milestone.id || `MLS-${crypto.randomUUID()}`, id, milestone.title, milestone.date || milestone.dueDate, Boolean(milestone.completed)]
         );
       }
     }
-
-    res.status(201).json({ message: 'Projet créé avec succès', projectId: id });
-  } catch (err) {
-    res.status(500).json({ error: 'Erreur lors de la création du projet', details: err.message });
-  }
-};
-
-// Mettre à jour un projet
-exports.updateProject = async (req, res) => {
-  const { id } = req.params;
-  const { name, description, status, priority, budget, budget_spent, progress } = req.body;
-
-  try {
-    await db.query(
-      `UPDATE projects 
-       SET name = COALESCE(?, name), 
-           description = COALESCE(?, description), 
-           status = COALESCE(?, status), 
-           priority = COALESCE(?, priority), 
-           budget = COALESCE(?, budget), 
-           budget_spent = COALESCE(?, budget_spent), 
-           progress = COALESCE(?, progress) 
-       WHERE id = ?`,
-      [name, description, status, priority, budget, budget_spent, progress, id]
-    );
-
+    await connection.commit();
+    if (result.affectedRows === 0) {
+      const [rows] = await connection.query('SELECT id FROM projects WHERE id = ?', [id]);
+      if (rows.length === 0) return res.status(404).json({ error: 'Projet non trouvé' });
+    }
     res.json({ message: 'Projet mis à jour avec succès' });
   } catch (err) {
+    await connection.rollback();
     res.status(500).json({ error: 'Erreur lors de la mise à jour du projet', details: err.message });
+  } finally {
+    connection.release();
   }
 };
 
-// Supprimer un projet
 exports.deleteProject = async (req, res) => {
-  const { id } = req.params;
   try {
-    await db.query('DELETE FROM projects WHERE id = ?', [id]);
+    await db.query('DELETE FROM projects WHERE id = ?', [req.params.id]);
     res.json({ message: 'Projet supprimé avec succès' });
   } catch (err) {
     res.status(500).json({ error: 'Erreur lors de la suppression du projet', details: err.message });
   }
 };
 
-// Ajouter un jalon à un projet
 exports.addMilestone = async (req, res) => {
-  const { projectId } = req.params;
-  const { title, dueDate } = req.body;
-  const mId = `MLS-${Date.now().toString().slice(-4)}`;
-
+  const id = `MLS-${crypto.randomUUID()}`;
   try {
     await db.query(
       'INSERT INTO milestones (id, project_id, title, due_date, completed) VALUES (?, ?, ?, ?, false)',
-      [mId, projectId, title, dueDate]
+      [id, req.params.projectId, req.body.title, req.body.dueDate]
     );
-
-    res.status(201).json({ message: 'Jalon ajouté avec succès', milestoneId: mId });
+    res.status(201).json({ message: 'Jalon ajouté avec succès', milestoneId: id });
   } catch (err) {
-    res.status(500).json({ error: 'Erreur lors de l\'ajout du jalon', details: err.message });
+    res.status(500).json({ error: 'Erreur lors de l’ajout du jalon', details: err.message });
   }
 };
 
-// Basculer la complétion d'un jalon
 exports.toggleMilestone = async (req, res) => {
-  const { id } = req.params;
   try {
-    const [rows] = await db.query('SELECT completed, project_id FROM milestones WHERE id = ?', [id]);
+    const [rows] = await db.query('SELECT completed, project_id FROM milestones WHERE id = ?', [req.params.id]);
     if (rows.length === 0) return res.status(404).json({ error: 'Jalon non trouvé' });
-
-    const newStatus = !rows[0].completed;
-    await db.query('UPDATE milestones SET completed = ? WHERE id = ?', [newStatus, id]);
-
-    // Re-calculer la progression du projet
-    const projectId = rows[0].project_id;
-    const [allMls] = await db.query('SELECT completed FROM milestones WHERE project_id = ?', [projectId]);
-    if (allMls.length > 0) {
-      const completedCount = allMls.filter(m => m.completed).length;
-      const progressPercentage = Math.round((completedCount / allMls.length) * 100);
-      await db.query('UPDATE projects SET progress = ? WHERE id = ?', [progressPercentage, projectId]);
-    }
-
-    res.json({ message: 'Statut du jalon mis à jour', completed: newStatus });
+    const completed = !rows[0].completed;
+    await db.query('UPDATE milestones SET completed = ? WHERE id = ?', [completed, req.params.id]);
+    const [milestones] = await db.query('SELECT completed FROM milestones WHERE project_id = ?', [rows[0].project_id]);
+    const progress = Math.round(milestones.filter(item => item.completed).length / milestones.length * 100);
+    await db.query('UPDATE projects SET progress = ? WHERE id = ?', [progress, rows[0].project_id]);
+    res.json({ message: 'Statut du jalon mis à jour', completed });
   } catch (err) {
     res.status(500).json({ error: 'Erreur lors de la mise à jour du jalon', details: err.message });
   }

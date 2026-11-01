@@ -1,3 +1,4 @@
+const crypto = require('node:crypto');
 const db = require('../config/db');
 
 // Récupérer tous les Sprints
@@ -12,13 +13,15 @@ exports.getAllSprints = async (req, res) => {
 
 // Créer un Sprint
 exports.createSprint = async (req, res) => {
-  const { name, start_date, end_date, status } = req.body;
-  const id = `SPR-${Date.now().toString().slice(-4)}`;
+  const { name, status } = req.body;
+  const startDate = req.body.startDate || req.body.start_date;
+  const endDate = req.body.endDate || req.body.end_date;
+  const id = req.body.id || `SPR-${crypto.randomUUID()}`;
 
   try {
     await db.query(
       'INSERT INTO sprints (id, name, start_date, end_date, status) VALUES (?, ?, ?, ?, ?)',
-      [id, name, start_date, end_date, status || 'planned']
+      [id, name, startDate, endDate, status || 'planned']
     );
     res.status(201).json({ message: 'Sprint créé avec succès', sprintId: id });
   } catch (err) {
@@ -29,12 +32,14 @@ exports.createSprint = async (req, res) => {
 // Mettre à jour un Sprint
 exports.updateSprint = async (req, res) => {
   const { id } = req.params;
-  const { name, start_date, end_date, status } = req.body;
+  const { name, status } = req.body;
+  const startDate = req.body.startDate || req.body.start_date;
+  const endDate = req.body.endDate || req.body.end_date;
 
   try {
     await db.query(
       'UPDATE sprints SET name = COALESCE(?, name), start_date = COALESCE(?, start_date), end_date = COALESCE(?, end_date), status = COALESCE(?, status) WHERE id = ?',
-      [name, start_date, end_date, status, id]
+      [name ?? null, startDate ?? null, endDate ?? null, status ?? null, id]
     );
     res.json({ message: 'Sprint mis à jour' });
   } catch (err) {

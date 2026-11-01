@@ -27,7 +27,7 @@ export function DashboardTab() {
         const total = sprintTasks.length;
         setCompletedTasksCount(completed);
         setTotalTasksCount(total);
-        setSprintProgress(total > 0 ? Math.round((completed / total) * 100) : 68);
+        setSprintProgress(total > 0 ? Math.round((completed / total) * 100) : 0);
       }
 
       // Collect milestones
@@ -77,7 +77,7 @@ export function DashboardTab() {
               <div>
                 <div className="flex justify-between text-xs sm:text-sm mb-2">
                   <span className="text-gray-500 dark:text-gray-400 font-medium">
-                    {activeSprint?.name || 'Sprint 1 - MVP Core'}
+                    {activeSprint?.name || 'Aucun sprint actif'}
                   </span>
                   <span className="font-semibold text-indigo-600 dark:text-indigo-400">{sprintProgress}%</span>
                 </div>

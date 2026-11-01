@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { X, Send, MessageSquare, AtSign, CheckSquare, Plus, Trash2 } from 'lucide-react';
 import { useNotifications } from '@/components/notification-provider';
+import { getStoredTeam } from '@/lib/api';
 
 export function TaskModal({ 
   editingTask, 
@@ -24,6 +25,7 @@ export function TaskModal({
   const [newComment, setNewComment] = useState('');
   const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
   const { addNotification } = useNotifications();
+  const currentUser = getStoredTeam().find(member => String(member.id) === 'USR-1') || getStoredTeam()[0];
 
   if (!editingTask) return null;
 
@@ -64,13 +66,13 @@ export function TaskModal({
 
     const comment = {
       id: Date.now().toString(),
-      author: 'Samuel Mbarga', // Cameroonian logged in user
+      author: currentUser?.name || 'Utilisateur',
       text: newComment,
       timestamp: new Date()
     };
 
     // Check for mentions
-    if (newComment.includes('@Samuel Mbarga') || newComment.includes('@Samuel')) {
+    if (currentUser && newComment.includes(`@${currentUser.name}`)) {
       addNotification({
         type: 'comment',
         title: 'Mention dans un commentaire',
@@ -324,15 +326,15 @@ export function TaskModal({
               <textarea 
                 value={newComment}
                 onChange={e => setNewComment(e.target.value)}
-                placeholder="Écrivez un commentaire... (@Samuel Mbarga)"
+                placeholder={`Écrivez un commentaire...${currentUser ? ` (@${currentUser.name})` : ''}`}
                 className="w-full px-3 py-2 pr-10 bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 dark:text-white resize-none h-18 custom-scrollbar"
               />
               <div className="absolute right-2 bottom-2 flex items-center gap-1">
                 <button 
                   type="button"
-                  onClick={() => setNewComment(prev => prev + '@Samuel Mbarga ')}
+                  onClick={() => currentUser && setNewComment(prev => `${prev}@${currentUser.name} `)}
                   className="p-1.5 text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer"
-                  title="Mentionner Samuel Mbarga"
+                  title={currentUser ? `Mentionner ${currentUser.name}` : 'Mentionner'}
                 >
                   <AtSign size={14} />
                 </button>

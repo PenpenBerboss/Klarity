@@ -7,5 +7,6 @@ router.post('/', notificationController.createNotification);
 router.patch('/:id/read', notificationController.markAsRead);
 router.post('/read-all', notificationController.markAllAsRead);
 router.delete('/clear-all', notificationController.clearAllNotifications);
+router.delete('/:id', notificationController.deleteNotification);
 
 module.exports = router;

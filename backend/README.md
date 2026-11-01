@@ -49,12 +49,17 @@ backend/
    mysql -u root -p
    ```
 
-2. Exécutez le script **`schema.sql`** pour créer la base de données `klarity_db` et toutes les tables nécessaires :
+2. Pour une base **neuve uniquement**, exécutez **`schema.sql`** pour créer la base de données `klarity_db` et ses tables. Ce script réinitialise les tables : ne l’exécutez pas sur une base contenant des données à conserver.
    ```bash
    mysql -u root -p < schema.sql
    ```
 
-3. Exécutez le script **`seed.sql`** pour insérer les données initiales d'exemple :
+   Pour une base Klarity déjà existante, appliquez une fois la migration non destructive :
+   ```bash
+   mysql -u root -p < migrations/20261030_data_sync.sql
+   ```
+
+3. Exécutez **`seed.sql`** uniquement pour ajouter les données de démonstration à une base neuve :
    ```bash
    mysql -u root -p < seed.sql
    ```
@@ -106,6 +111,8 @@ npm start
 
 Le serveur sera accessible à l'adresse : **`http://localhost:5000/api`**
 
+À la racine du dépôt, créez aussi `.env.local` à partir de `.env.example` et configurez `BACKEND_URL`. Démarrez ensuite le frontend avec `npm run dev`. Les routes Next `/api/*` relaient maintenant les appels vers Express ; elles ne gardent plus de données mockées en mémoire.
+
 ---
 
 ## 📡 Endpoints API Principaux
@@ -148,3 +155,7 @@ Le serveur sera accessible à l'adresse : **`http://localhost:5000/api`**
 ### ⚙️ Paramètres (`/api/settings`)
 - `GET /api/settings` : Récupère les préférences utilisateur.
 - `POST /api/settings` : Sauvegarde/Met à jour les préférences.
+
+### 🚧 Points de blocage (`/api/actionable-tasks`)
+- `GET /api/actionable-tasks` : Récupère les alertes enregistrées.
+- `POST /api/actionable-tasks` : Crée ou met à jour une alerte.

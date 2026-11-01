@@ -1,6 +1,6 @@
 // Client and Server Persistent Storage Engine & API for Klarity Platform
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || '/api';
+const BACKEND_URL = '/api';
 
 // Database Schema Models
 export interface UserMember {
@@ -88,199 +88,150 @@ export interface NotificationItem {
   link?: string;
 }
 
-// Default Seed Data (Injected into Database Storage if Empty)
-const seedTeam: UserMember[] = [
-  { id: 1, name: 'Samuel Mbarga', role: 'Lead Developer', department: 'Ingénierie', capacity: 95, status: 'surchargé', email: 'samuel@klarity.cm' },
-  { id: 2, name: 'Chantal Abena', role: 'Product Manager', department: 'Produit', capacity: 80, status: 'optimal', email: 'chantal@klarity.cm' },
-  { id: 3, name: 'Emmanuel Nguema', role: 'DevOps Engineer', department: 'Infrastructure', capacity: 60, status: 'optimal', email: 'emmanuel@klarity.cm' },
-  { id: 4, name: 'Nathalie Ekotto', role: 'UX/UI Designer', department: 'Design', capacity: 110, status: 'critique', email: 'nathalie@klarity.cm' },
-  { id: 5, name: 'Dieudonné Tchato', role: 'Développeur Frontend', department: 'Ingénierie', capacity: 40, status: 'disponible', email: 'dieudonne@klarity.cm' },
-];
-
-const seedProjects: Project[] = [
-  { 
-    id: 'PRJ-1', 
-    name: 'Refonte ERP', 
-    status: 'at_risk', 
-    progress: 65, 
-    budget: 135, 
-    totalBudget: 120, 
-    dueDate: '2026-10-15', 
-    manager: 'Samuel Mbarga',
-    description: 'Refonte complète du système ERP pour la gestion financière et logistique.',
-    milestones: [
-      { id: 'M1', title: 'Analyse des besoins', date: '2026-04-01', completed: true },
-      { id: 'M2', title: 'Architecture BDD', date: '2026-06-15', completed: true },
-      { id: 'M3', title: 'Développement Core', date: '2026-09-01', completed: false },
-    ]
-  },
-  { 
-    id: 'PRJ-2', 
-    name: 'App Mobile', 
-    status: 'delayed', 
-    progress: 40, 
-    budget: 65, 
-    totalBudget: 80, 
-    dueDate: '2026-11-02', 
-    manager: 'Chantal Abena',
-    description: 'Application mobile iOS et Android pour les clients.',
-    milestones: [
-      { id: 'M4', title: 'Maquettes UI/UX', date: '2026-05-10', completed: true },
-      { id: 'M5', title: 'Version Beta', date: '2026-08-20', completed: false },
-    ]
-  },
-  { 
-    id: 'PRJ-3', 
-    name: 'Migration Cloud', 
-    status: 'on_track', 
-    progress: 85, 
-    budget: 180, 
-    totalBudget: 200, 
-    dueDate: '2026-09-28', 
-    manager: 'Emmanuel Nguema',
-    description: 'Migration des serveurs physiques vers l\'infrastructure cloud hybride.',
-    milestones: [
-      { id: 'M6', title: 'Audit infra', date: '2026-03-15', completed: true },
-      { id: 'M7', title: 'Migration Phase 1', date: '2026-07-01', completed: true },
-    ]
-  },
-  { 
-    id: 'PRJ-4', 
-    name: 'Site Web', 
-    status: 'on_track', 
-    progress: 100, 
-    budget: 40, 
-    totalBudget: 40, 
-    dueDate: '2026-09-01', 
-    manager: 'Nathalie Ekotto',
-    description: 'Nouveau site web vitrine et portail client.',
-    milestones: [
-      { id: 'M8', title: 'Livraison finale', date: '2026-09-01', completed: true }
-    ]
-  },
-  { 
-    id: 'PRJ-5', 
-    name: 'CRM V2', 
-    status: 'on_track', 
-    progress: 20, 
-    budget: 30, 
-    totalBudget: 90, 
-    dueDate: '2026-12-15', 
-    manager: 'Dieudonné Tchato',
-    description: 'Module CRM centralisé pour l\'équipe commerciale.',
-    milestones: [
-      { id: 'M9', title: 'Spécifications fonctionnelles', date: '2026-10-01', completed: false }
-    ]
-  }
-];
-
-const seedTasks: Task[] = [
-  { id: 'TSK-1', title: 'Maquette page accueil', project: 'Site Web', assignee: 'Nathalie Ekotto', status: 'todo', priority: 'high', dueDate: '2026-03-05', dependencies: [], sprintId: 'SPR-1', subtasks: [{ id: 's1', title: 'Zoning wireframe', completed: true }, { id: 's2', title: 'Prototypage Figma', completed: false }] },
-  { id: 'TSK-2', title: 'API Authentification Mobile Money', project: 'App Mobile', assignee: 'Samuel Mbarga', status: 'in_progress', priority: 'critical', dueDate: '2026-03-01', dependencies: ['TSK-1'], sprintId: 'SPR-1', subtasks: [{ id: 's3', title: 'Connexion Orange Money', completed: true }, { id: 's4', title: 'Connexion MTN Mobile Money', completed: true }, { id: 's5', title: 'Gestion webhooks', completed: false }] },
-  { id: 'TSK-3', title: 'Tests E2E & Validation', project: 'Refonte ERP', assignee: 'Chantal Abena', status: 'review', priority: 'medium', dueDate: '2026-03-15', dependencies: ['TSK-2'], sprintId: 'SPR-2', subtasks: [] },
-  { id: 'TSK-4', title: 'Configuration CI/CD Kubernetes', project: 'Migration Cloud', assignee: 'Emmanuel Nguema', status: 'done', priority: 'high', dueDate: '2026-03-02', dependencies: [], sprintId: 'SPR-1', subtasks: [{ id: 's6', title: 'Script Helm charts', completed: true }] },
-  { id: 'TSK-5', title: 'Design System & Composants', project: 'App Mobile', assignee: 'Nathalie Ekotto', status: 'in_progress', priority: 'medium', dueDate: '2026-03-20', dependencies: ['TSK-1'], sprintId: null, subtasks: [] },
-  { id: 'TSK-6', title: 'Rédaction documentation technique', project: 'CRM V2', assignee: 'Dieudonné Tchato', status: 'todo', priority: 'medium', dueDate: '2026-03-25', dependencies: [], sprintId: null, subtasks: [] },
-];
-
-const seedActionableTasks: ActionableTask[] = [
-  {
-    id: "TSK-842",
-    title: "Validation API de paiement Mobile Money",
-    project: "Refonte ERP",
-    assignee: "Samuel Mbarga",
-    status: "blocked",
-    reason: "Attente retour partenaire Orange/MTN",
-    impact: "Chemin critique impacté (+2j)"
-  },
-  {
-    id: "TSK-890",
-    title: "Design System V2",
-    project: "App Mobile",
-    assignee: "Chantal Abena",
-    status: "delayed",
-    reason: "Surcharge de travail détectée",
-    impact: "Risque sur le sprint actuel"
-  },
-  {
-    id: "TSK-901",
-    title: "Migration DB Prod",
-    project: "Migration Cloud",
-    assignee: "Emmanuel Nguema",
-    status: "warning",
-    reason: "Budget infrastructure > 90%",
-    impact: "Alerte financière"
-  }
-];
-
-const seedSprints: Sprint[] = [
-  { id: 'SPR-1', name: 'Sprint 1 - MVP Core', startDate: '2026-03-01', endDate: '2026-03-14', status: 'active' },
-  { id: 'SPR-2', name: 'Sprint 2 - UI Refinement', startDate: '2026-03-15', endDate: '2026-03-28', status: 'planned' },
-];
-
-const seedNotifications: NotificationItem[] = [
-  {
-    id: '1',
-    type: 'system',
-    title: 'Espace Klarity Initialisé',
-    message: 'Votre base de données d\'entreprise a été configurée et synchronisée.',
-    timestamp: '2026-03-01T08:00:00.000Z',
-    read: false,
-  }
-];
-
 // Helper to access Local Storage safely
 function getItem<T>(key: string, defaultValue: T): T {
   if (typeof window === 'undefined') return defaultValue;
-  try {
-    const data = window.localStorage.getItem(`klarity_db_${key}`);
-    if (!data) {
-      window.localStorage.setItem(`klarity_db_${key}`, JSON.stringify(defaultValue));
-      return defaultValue;
-    }
-    return JSON.parse(data);
-  } catch (err) {
-    console.error(`Error reading ${key} from storage:`, err);
+  const data = window.localStorage.getItem(`klarity_db_${key}`);
+  if (!data) {
+    setItem(key, defaultValue);
     return defaultValue;
   }
+  return JSON.parse(data) as T;
 }
 
 function setItem<T>(key: string, value: T): void {
   if (typeof window === 'undefined') return;
-  try {
-    window.localStorage.setItem(`klarity_db_${key}`, JSON.stringify(value));
-    // Trigger cross-tab/component sync event
-    window.dispatchEvent(new CustomEvent('klarity_db_update', { detail: { key, value } }));
-  } catch (err) {
-    console.error(`Error writing ${key} to storage:`, err);
-  }
+  window.localStorage.setItem(`klarity_db_${key}`, JSON.stringify(value));
+  window.dispatchEvent(new CustomEvent('klarity_db_update', { detail: { key, value } }));
 }
 
 // API Fetch wrapper for Express Backend
 export async function fetchFromBackend(endpoint: string, options: RequestInit = {}) {
-  try {
-    const res = await fetch(`${BACKEND_URL}${endpoint}`, {
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-      ...options,
-    });
-    if (!res.ok) {
-      throw new Error(`API Error: ${res.statusText}`);
-    }
-    return await res.json();
-  } catch (err) {
-    console.warn(`Backend sync notice for ${endpoint}: using database storage fallback.`, err);
-    return null;
+  const res = await fetch(`${BACKEND_URL}${endpoint}`, {
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+    cache: 'no-store',
+    ...options,
+  });
+  if (!res.ok) {
+    const response = await res.json().catch(() => null);
+    throw new Error(response?.error || `API ${res.status}: ${res.statusText}`);
   }
+  return res.status === 204 ? null : res.json();
+}
+
+function persistBackendChange(endpoint: string, options: RequestInit): void {
+  void fetchFromBackend(endpoint, options)
+    .then(() => syncDatabaseStorage())
+    .catch((error: unknown) => {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(`Backend request failed (${endpoint}): ${message}`);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('klarity_api_error', { detail: { message } }));
+      }
+    });
+}
+
+function dateOnly(value: string | Date | null | undefined): string {
+  if (!value) return '';
+  return String(value).slice(0, 10);
+}
+
+function setServerItems<T>(key: string, value: T): void {
+  setItem(key, value);
+}
+
+export async function syncDatabaseStorage(): Promise<void> {
+  const [team, projects, tasks, sprints, notifications, settings, actionableTasks] = await Promise.all([
+    fetchFromBackend('/team'),
+    fetchFromBackend('/projects'),
+    fetchFromBackend('/tasks'),
+    fetchFromBackend('/sprints'),
+    fetchFromBackend('/notifications'),
+    fetchFromBackend('/settings'),
+    fetchFromBackend('/actionable-tasks'),
+  ]);
+
+  setServerItems('team', (team as Array<Record<string, unknown>>).map(member => ({
+    id: member.id as string,
+    name: String(member.name || ''),
+    email: String(member.email || ''),
+    role: String(member.role || ''),
+    department: String(member.department || 'Général'),
+    capacity: Number(member.load_percentage ?? member.capacity ?? 0),
+    status: member.status === 'invited' || member.status === 'invité' ? 'invité'
+      : Number(member.load_percentage ?? member.capacity ?? 0) >= 100 ? 'critique'
+      : Number(member.load_percentage ?? member.capacity ?? 0) >= 85 ? 'surchargé'
+      : Number(member.load_percentage ?? member.capacity ?? 0) >= 50 ? 'optimal' : 'disponible',
+  })));
+  setServerItems('projects', (projects as Array<Record<string, unknown>>).map(project => ({
+    id: String(project.id),
+    name: String(project.name || ''),
+    status: project.status as Project['status'],
+    progress: Number(project.progress || 0),
+    budget: Number(project.budget_spent ?? project.budget ?? 0),
+    totalBudget: Number(project.budget || 0),
+    dueDate: dateOnly(project.end_date as string | Date),
+    manager: String(project.manager_name || project.manager || ''),
+    description: String(project.description || ''),
+    milestones: ((project.milestones || []) as Array<Record<string, unknown>>).map(milestone => ({
+      id: String(milestone.id),
+      title: String(milestone.title || ''),
+      date: dateOnly((milestone.dueDate || milestone.due_date) as string | Date),
+      completed: Boolean(milestone.completed),
+    })),
+  })));
+  setServerItems('tasks', (tasks as Array<Record<string, unknown>>).map(task => ({
+    id: String(task.id),
+    title: String(task.title || ''),
+    project: String(task.project || ''),
+    assignee: String(task.assignee || ''),
+    status: task.status as Task['status'],
+    priority: task.priority as Task['priority'],
+    dueDate: dateOnly(task.dueDate as string | Date),
+    dependencies: (task.dependencies || []) as string[],
+    sprintId: task.sprintId ? String(task.sprintId) : null,
+    subtasks: (task.subtasks || []) as Subtask[],
+    comments: (task.comments || []) as TaskComment[],
+  })));
+  setServerItems('sprints', (sprints as Array<Record<string, unknown>>).map(sprint => ({
+    id: String(sprint.id),
+    name: String(sprint.name || ''),
+    startDate: dateOnly((sprint.startDate || sprint.start_date) as string | Date),
+    endDate: dateOnly((sprint.endDate || sprint.end_date) as string | Date),
+    status: sprint.status as Sprint['status'],
+  })));
+  setServerItems('notifications', (notifications as Array<Record<string, unknown>>).map(item => ({
+    id: String(item.id),
+    type: item.type as NotificationItem['type'],
+    title: String(item.title || ''),
+    message: String(item.message || ''),
+    timestamp: String(item.timestamp || item.created_at || ''),
+    read: Boolean(item.read ?? item.is_read),
+    link: String(item.link || '#'),
+  })));
+  setServerItems('user_settings', {
+    userId: 'USR-1',
+    theme: (settings.theme || 'system') as UserSettings['theme'],
+    accentColor: String(settings.accent_color || settings.accentColor || 'indigo'),
+    density: (settings.density || 'comfortable') as UserSettings['density'],
+    language: String(settings.language || 'fr'),
+    timezone: String(settings.timezone || 'Europe/Paris'),
+    dateFormat: String(settings.date_format || settings.dateFormat || 'DD/MM/YYYY'),
+    emailNotifications: Boolean(settings.email_notifications ?? settings.emailNotifications ?? true),
+    pushNotifications: Boolean(settings.push_notifications ?? settings.pushNotifications ?? true),
+    updatedAt: String(settings.updated_at || settings.updatedAt || ''),
+  });
+  setServerItems('actionable_tasks', actionableTasks as ActionableTask[]);
 }
 
 // ========================================================
 // NOTIFICATIONS PERSISTENCE & AUTO-CREATION
 // ========================================================
 export function getStoredNotifications(): NotificationItem[] {
-  return getItem<NotificationItem[]>('notifications', seedNotifications);
+  return getItem<NotificationItem[]>('notifications', []);
 }
 
 export function createSystemNotification(notification: {
@@ -301,7 +252,7 @@ export function createSystemNotification(notification: {
   setItem('notifications', updated);
 
   // Send to backend DB
-  fetchFromBackend('/notifications', {
+  persistBackendChange('/notifications', {
     method: 'POST',
     body: JSON.stringify(newItem)
   });
@@ -313,18 +264,37 @@ export function markNotificationRead(id: string): NotificationItem[] {
   const current = getStoredNotifications();
   const updated = current.map(n => n.id === id ? { ...n, read: true } : n);
   setItem('notifications', updated);
+  persistBackendChange(`/notifications/${id}/read`, { method: 'PATCH' });
+  return updated;
+}
+
+export function markAllNotificationsRead(): NotificationItem[] {
+  const updated = getStoredNotifications().map(item => ({ ...item, read: true }));
+  setItem('notifications', updated);
+  persistBackendChange('/notifications/read-all', {
+    method: 'POST',
+    body: JSON.stringify({ userId: 'USR-1' }),
+  });
+  return updated;
+}
+
+export function deleteNotification(id: string): NotificationItem[] {
+  const updated = getStoredNotifications().filter(item => item.id !== id);
+  setItem('notifications', updated);
+  persistBackendChange(`/notifications/${id}`, { method: 'DELETE' });
   return updated;
 }
 
 export function clearAllNotifications(): void {
   setItem('notifications', []);
+  persistBackendChange('/notifications/clear-all', { method: 'DELETE' });
 }
 
 // ========================================================
 // TEAM / MEMBERS PERSISTENCE
 // ========================================================
 export function getStoredTeam(): UserMember[] {
-  return getItem<UserMember[]>('team', seedTeam);
+  return getItem<UserMember[]>('team', []);
 }
 
 export function saveTeamMember(member: Partial<UserMember> & { name: string; email: string; role: string }): UserMember[] {
@@ -359,7 +329,10 @@ export function saveTeamMember(member: Partial<UserMember> & { name: string; ema
   }
 
   setItem('team', updated);
-  fetchFromBackend('/team', { method: 'POST', body: JSON.stringify(member) });
+  persistBackendChange(
+    existingIndex >= 0 ? `/team/${member.id}` : '/team',
+    { method: existingIndex >= 0 ? 'PUT' : 'POST', body: JSON.stringify(member) }
+  );
   return updated;
 }
 
@@ -377,7 +350,7 @@ export function deleteTeamMember(id: string | number): UserMember[] {
     });
   }
 
-  fetchFromBackend(`/team/${id}`, { method: 'DELETE' });
+  persistBackendChange(`/team/${id}`, { method: 'DELETE' });
   return updated;
 }
 
@@ -385,7 +358,7 @@ export function deleteTeamMember(id: string | number): UserMember[] {
 // PROJECTS PERSISTENCE
 // ========================================================
 export function getStoredProjects(): Project[] {
-  return getItem<Project[]>('projects', seedProjects);
+  return getItem<Project[]>('projects', []);
 }
 
 export function saveProject(project: Partial<Project> & { name: string; manager: string }): Project[] {
@@ -407,7 +380,7 @@ export function saveProject(project: Partial<Project> & { name: string; manager:
       status: project.status || 'on_track',
       progress: project.progress || 0,
       budget: project.budget || 0,
-      totalBudget: project.totalBudget || 50,
+      totalBudget: project.totalBudget ?? 0,
       dueDate: project.dueDate || new Date().toISOString().split('T')[0],
       manager: project.manager,
       description: project.description || '',
@@ -423,7 +396,10 @@ export function saveProject(project: Partial<Project> & { name: string; manager:
   }
 
   setItem('projects', updated);
-  fetchFromBackend('/projects', { method: 'POST', body: JSON.stringify(project) });
+  persistBackendChange(
+    existingIndex >= 0 ? `/projects/${project.id}` : '/projects',
+    { method: existingIndex >= 0 ? 'PUT' : 'POST', body: JSON.stringify(project) }
+  );
   return updated;
 }
 
@@ -441,7 +417,7 @@ export function deleteProject(id: string): Project[] {
     });
   }
 
-  fetchFromBackend(`/projects/${id}`, { method: 'DELETE' });
+  persistBackendChange(`/projects/${id}`, { method: 'DELETE' });
   return updated;
 }
 
@@ -449,7 +425,7 @@ export function deleteProject(id: string): Project[] {
 // TASKS PERSISTENCE
 // ========================================================
 export function getStoredTasks(): Task[] {
-  return getItem<Task[]>('tasks', seedTasks);
+  return getItem<Task[]>('tasks', []);
 }
 
 export function saveTask(task: Partial<Task> & { title: string; project: string }): Task[] {
@@ -486,7 +462,7 @@ export function saveTask(task: Partial<Task> & { title: string; project: string 
       id: task.id || `TSK-${current.length + 1}`,
       title: task.title,
       project: task.project,
-      assignee: task.assignee || 'Samuel Mbarga',
+      assignee: task.assignee || '',
       status: task.status || 'todo',
       priority: task.priority || 'medium',
       dueDate: task.dueDate || new Date().toISOString().split('T')[0],
@@ -505,7 +481,10 @@ export function saveTask(task: Partial<Task> & { title: string; project: string 
   }
 
   setItem('tasks', updated);
-  fetchFromBackend('/tasks', { method: 'POST', body: JSON.stringify(task) });
+  persistBackendChange(
+    existingIndex >= 0 ? `/tasks/${task.id}` : '/tasks',
+    { method: existingIndex >= 0 ? 'PUT' : 'POST', body: JSON.stringify(task) }
+  );
   return updated;
 }
 
@@ -523,7 +502,7 @@ export function deleteTask(id: string): Task[] {
     });
   }
 
-  fetchFromBackend(`/tasks/${id}`, { method: 'DELETE' });
+  persistBackendChange(`/tasks/${id}`, { method: 'DELETE' });
   return updated;
 }
 
@@ -546,7 +525,7 @@ export function reassignTasksBulk(reassignments: Array<{ taskId: string; newAssi
     message: `${reassignments.length} tâches ont été réassignées avec succès dans la base de données.`
   });
 
-  fetchFromBackend('/team/reassign-tasks', { method: 'POST', body: JSON.stringify({ reassignments }) });
+  persistBackendChange('/team/reassign-tasks', { method: 'POST', body: JSON.stringify({ reassignments }) });
   return updated;
 }
 
@@ -554,7 +533,7 @@ export function reassignTasksBulk(reassignments: Array<{ taskId: string; newAssi
 // ACTIONABLE / BLOCKED TASKS PERSISTENCE
 // ========================================================
 export function getStoredActionableTasks(): ActionableTask[] {
-  return getItem<ActionableTask[]>('actionable_tasks', seedActionableTasks);
+  return getItem<ActionableTask[]>('actionable_tasks', []);
 }
 
 export function saveActionableTask(task: ActionableTask): ActionableTask[] {
@@ -569,6 +548,10 @@ export function saveActionableTask(task: ActionableTask): ActionableTask[] {
   }
 
   setItem('actionable_tasks', updated);
+  persistBackendChange('/actionable-tasks', {
+    method: 'POST',
+    body: JSON.stringify(task),
+  });
 
   createSystemNotification({
     type: 'system',
@@ -583,7 +566,7 @@ export function saveActionableTask(task: ActionableTask): ActionableTask[] {
 // SPRINTS PERSISTENCE
 // ========================================================
 export function getStoredSprints(): Sprint[] {
-  return getItem<Sprint[]>('sprints', seedSprints);
+  return getItem<Sprint[]>('sprints', []);
 }
 
 export function saveSprint(sprint: Sprint): Sprint[] {
@@ -598,6 +581,13 @@ export function saveSprint(sprint: Sprint): Sprint[] {
   }
 
   setItem('sprints', updated);
+  persistBackendChange(
+    existing >= 0 ? `/sprints/${sprint.id}` : '/sprints',
+    {
+      method: existing >= 0 ? 'PUT' : 'POST',
+      body: JSON.stringify(sprint),
+    }
+  );
 
   createSystemNotification({
     type: 'system',
@@ -605,6 +595,13 @@ export function saveSprint(sprint: Sprint): Sprint[] {
     message: `Le sprint "${sprint.name}" a été enregistré.`
   });
 
+  return updated;
+}
+
+export function deleteSprint(id: string): Sprint[] {
+  const updated = getStoredSprints().filter(sprint => sprint.id !== id);
+  setItem('sprints', updated);
+  persistBackendChange(`/sprints/${id}`, { method: 'DELETE' });
   return updated;
 }
 
@@ -691,6 +688,13 @@ export function saveUserSettings(settings: Partial<UserSettings>): UserSettings 
     } catch {
       // Ignore
     }
+    if (settings.density) {
+      try {
+        localStorage.setItem('klarity_density', settings.density);
+      } catch {
+        // Ignore
+      }
+    }
 
     createSystemNotification({
       type: 'system',
@@ -699,7 +703,7 @@ export function saveUserSettings(settings: Partial<UserSettings>): UserSettings 
     });
   }
 
-  fetchFromBackend('/user-settings', {
+  persistBackendChange('/settings', {
     method: 'POST',
     body: JSON.stringify(updated),
   });

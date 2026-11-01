@@ -1,168 +1,232 @@
+const crypto = require('node:crypto');
 const db = require('../config/db');
 
-// Récupérer toutes les tâches avec leurs sous-tâches, commentaires et dépendances
+async function resolveProjectId(connection, task) {
+  if (task.project_id) return task.project_id;
+  const [projects] = await connection.query('SELECT id FROM projects WHERE name = ? LIMIT 1', [task.project]);
+  return projects[0]?.id || null;
+}
+
+async function resolveAssigneeId(connection, assignee) {
+  if (!assignee) return null;
+  const [users] = await connection.query('SELECT id FROM users WHERE id = ? OR name = ? LIMIT 1', [assignee, assignee]);
+  return users[0]?.id || null;
+}
+
+async function replaceTaskDetails(connection, taskId, task) {
+  if (Array.isArray(task.subtasks)) {
+    await connection.query('DELETE FROM subtasks WHERE task_id = ?', [taskId]);
+    for (const subtask of task.subtasks) {
+      await connection.query(
+        'INSERT INTO subtasks (id, task_id, title, completed) VALUES (?, ?, ?, ?)',
+        [`SUB-${crypto.randomUUID()}`, taskId, subtask.title, Boolean(subtask.completed)]
+      );
+    }
+  }
+  if (Array.isArray(task.dependencies)) {
+    await connection.query('DELETE FROM task_dependencies WHERE task_id = ?', [taskId]);
+    for (const dependencyId of task.dependencies) {
+      await connection.query(
+        'INSERT INTO task_dependencies (task_id, depends_on_task_id) VALUES (?, ?)',
+        [taskId, dependencyId]
+      );
+    }
+  }
+  if (Array.isArray(task.comments)) {
+    await connection.query('DELETE FROM task_comments WHERE task_id = ?', [taskId]);
+    for (const comment of task.comments) {
+      const [authors] = await connection.query(
+        'SELECT id FROM users WHERE id = ? OR name = ? LIMIT 1',
+        [comment.author, comment.author]
+      );
+      await connection.query(
+        'INSERT INTO task_comments (id, task_id, author_id, text, created_at) VALUES (?, ?, ?, ?, ?)',
+        [`CMT-${crypto.randomUUID()}`, taskId, authors[0]?.id || 'USR-1', comment.text,
+          comment.timestamp ? new Date(comment.timestamp) : new Date()]
+      );
+    }
+  }
+}
+
 exports.getAllTasks = async (req, res) => {
   try {
     const [tasks] = await db.query(`
-      SELECT t.id, t.title, t.description, p.name AS project, u.name AS assignee, 
+      SELECT t.id, t.title, t.description, p.name AS project, u.name AS assignee,
              t.status, t.priority, t.due_date AS dueDate, t.sprint_id AS sprintId
       FROM tasks t
       LEFT JOIN projects p ON t.project_id = p.id
       LEFT JOIN users u ON t.assignee_id = u.id
       ORDER BY t.created_at DESC
     `);
-
-    for (let task of tasks) {
-      // Sous-tâches
-      const [subtasks] = await db.query('SELECT id, title, completed FROM subtasks WHERE task_id = ?', [task.id]);
-      task.subtasks = subtasks;
-
-      // Dépendances
-      const [deps] = await db.query('SELECT depends_on_task_id FROM task_dependencies WHERE task_id = ?', [task.id]);
-      task.dependencies = deps.map(d => d.depends_on_task_id);
-
-      // Commentaires
+    for (const task of tasks) {
+      const [subtasks] = await db.query(
+        'SELECT id, title, completed FROM subtasks WHERE task_id = ? ORDER BY created_at ASC',
+        [task.id]
+      );
+      const [dependencies] = await db.query(
+        'SELECT depends_on_task_id FROM task_dependencies WHERE task_id = ?',
+        [task.id]
+      );
       const [comments] = await db.query(`
         SELECT c.id, u.name AS author, c.text, c.created_at AS timestamp
-        FROM task_comments c
-        JOIN users u ON c.author_id = u.id
-        WHERE c.task_id = ?
-        ORDER BY c.created_at ASC
+        FROM task_comments c JOIN users u ON c.author_id = u.id
+        WHERE c.task_id = ? ORDER BY c.created_at ASC
       `, [task.id]);
+      task.subtasks = subtasks;
+      task.dependencies = dependencies.map(item => item.depends_on_task_id);
       task.comments = comments;
     }
-
     res.json(tasks);
   } catch (err) {
     res.status(500).json({ error: 'Erreur lors de la récupération des tâches', details: err.message });
   }
 };
 
-// Créer une nouvelle tâche
 exports.createTask = async (req, res) => {
-  const { title, description, project_id, assignee_id, status, priority, dueDate, sprintId, subtasks, dependencies } = req.body;
-  const id = `TSK-${Date.now().toString().slice(-4)}`;
-
+  const connection = await db.getConnection();
+  const task = req.body;
+  const id = task.id || `TSK-${crypto.randomUUID()}`;
   try {
-    await db.query(
-      `INSERT INTO tasks (id, title, description, project_id, assignee_id, status, priority, due_date, sprint_id)
+    await connection.beginTransaction();
+    const projectId = await resolveProjectId(connection, task);
+    if (!projectId) {
+      await connection.rollback();
+      return res.status(400).json({ error: 'Le projet associé à la tâche est introuvable' });
+    }
+    const assigneeId = await resolveAssigneeId(connection, task.assignee_id || task.assignee);
+    await connection.query(
+      `INSERT INTO tasks
+        (id, title, description, project_id, assignee_id, status, priority, due_date, sprint_id)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [id, title, description || '', project_id, assignee_id || null, status || 'todo', priority || 'medium', dueDate, sprintId || null]
+      [id, task.title, task.description || '', projectId, assigneeId, task.status || 'todo',
+        task.priority || 'medium', task.dueDate || task.due_date, task.sprintId || task.sprint_id || null]
     );
-
-    // Sous-tâches
-    if (subtasks && Array.isArray(subtasks)) {
-      for (let st of subtasks) {
-        const subId = `SUB-${Date.now().toString().slice(-4)}-${Math.floor(Math.random()*100)}`;
-        await db.query('INSERT INTO subtasks (id, task_id, title, completed) VALUES (?, ?, ?, ?)', [subId, id, st.title, st.completed || false]);
-      }
-    }
-
-    // Dépendances
-    if (dependencies && Array.isArray(dependencies)) {
-      for (let depId of dependencies) {
-        await db.query('INSERT INTO task_dependencies (task_id, depends_on_task_id) VALUES (?, ?)', [id, depId]);
-      }
-    }
-
+    await replaceTaskDetails(connection, id, task);
+    await connection.commit();
     res.status(201).json({ message: 'Tâche créée avec succès', taskId: id });
   } catch (err) {
+    await connection.rollback();
     res.status(500).json({ error: 'Erreur lors de la création de la tâche', details: err.message });
+  } finally {
+    connection.release();
   }
 };
 
-// Mettre à jour une tâche
 exports.updateTask = async (req, res) => {
+  const connection = await db.getConnection();
   const { id } = req.params;
-  const { title, status, priority, assignee_id, due_date, sprint_id } = req.body;
-
+  const task = req.body;
   try {
-    await db.query(
-      `UPDATE tasks 
-       SET title = COALESCE(?, title),
-           status = COALESCE(?, status),
-           priority = COALESCE(?, priority),
-           assignee_id = COALESCE(?, assignee_id),
-           due_date = COALESCE(?, due_date),
-           sprint_id = COALESCE(?, sprint_id)
+    await connection.beginTransaction();
+    const projectId = await resolveProjectId(connection, task);
+    const assigneeId = await resolveAssigneeId(connection, task.assignee_id || task.assignee);
+    const [result] = await connection.query(
+      `UPDATE tasks SET
+        title = COALESCE(?, title), description = COALESCE(?, description),
+        project_id = COALESCE(?, project_id), assignee_id = ?,
+        status = COALESCE(?, status), priority = COALESCE(?, priority),
+        due_date = COALESCE(?, due_date), sprint_id = ?
        WHERE id = ?`,
-      [title, status, priority, assignee_id, due_date, sprint_id, id]
+      [task.title ?? null, task.description ?? null, projectId, assigneeId,
+        task.status ?? null, task.priority ?? null, task.dueDate || task.due_date || null,
+        task.sprintId ?? task.sprint_id ?? null, id]
     );
-
-    res.json({ message: 'Tâche mise à jour avec succès' });
-  } catch (err) {
-    res.status(500).json({ error: 'Erreur lors de la mise à jour de la tâche', details: err.message });
-  }
-};
-
-// Réassigner des tâches en masse
-exports.reassignTasksBulk = async (req, res) => {
-  const { reassignments } = req.body; // Array of { taskId, newAssigneeNameOrId }
-
-  try {
-    if (Array.isArray(reassignments)) {
-      for (const item of reassignments) {
-        if (item.taskId && item.newAssignee) {
-          await db.query('UPDATE tasks SET assignee_id = ? WHERE id = ?', [item.newAssignee, item.taskId]);
-        }
+    if (result.affectedRows === 0) {
+      const [exists] = await connection.query('SELECT id FROM tasks WHERE id = ?', [id]);
+      if (exists.length === 0) {
+        await connection.rollback();
+        return res.status(404).json({ error: 'Tâche non trouvée' });
       }
     }
-    res.json({ message: 'Réassignation globale effectuée avec succès' });
+    await replaceTaskDetails(connection, id, task);
+    await connection.commit();
+    res.json({ message: 'Tâche mise à jour avec succès' });
   } catch (err) {
-    res.status(500).json({ error: 'Erreur lors de la réassignation en masse', details: err.message });
+    await connection.rollback();
+    res.status(500).json({ error: 'Erreur lors de la mise à jour de la tâche', details: err.message });
+  } finally {
+    connection.release();
   }
 };
 
-// Supprimer une tâche
-exports.deleteTask = async (req, res) => {
-  const { id } = req.params;
+exports.reassignTasksBulk = async (req, res) => {
+  const { reassignments } = req.body;
+  const connection = await db.getConnection();
   try {
-    await db.query('DELETE FROM tasks WHERE id = ?', [id]);
+    await connection.beginTransaction();
+    if (Array.isArray(reassignments)) {
+      for (const item of reassignments) {
+        const assigneeId = await resolveAssigneeId(connection, item.newAssignee || item.targetAssigneeId);
+        await connection.query('UPDATE tasks SET assignee_id = ? WHERE id = ?', [assigneeId, item.taskId]);
+      }
+    }
+    await connection.commit();
+    res.json({ message: 'Réassignation globale effectuée avec succès' });
+  } catch (err) {
+    await connection.rollback();
+    res.status(500).json({ error: 'Erreur lors de la réassignation en masse', details: err.message });
+  } finally {
+    connection.release();
+  }
+};
+
+exports.deleteTask = async (req, res) => {
+  try {
+    await db.query('DELETE FROM tasks WHERE id = ?', [req.params.id]);
     res.json({ message: 'Tâche supprimée avec succès' });
   } catch (err) {
     res.status(500).json({ error: 'Erreur lors de la suppression de la tâche', details: err.message });
   }
 };
 
-// Dupliquer une tâche
 exports.duplicateTask = async (req, res) => {
-  const { id } = req.params;
-  const newId = `TSK-${Date.now().toString().slice(-4)}`;
-
+  const connection = await db.getConnection();
+  const id = req.params.id;
+  const newId = `TSK-${crypto.randomUUID()}`;
   try {
-    const [tasks] = await db.query('SELECT * FROM tasks WHERE id = ?', [id]);
-    if (tasks.length === 0) return res.status(404).json({ error: 'Tâche non trouvée' });
-
-    const original = tasks[0];
-    await db.query(
+    await connection.beginTransaction();
+    const [tasks] = await connection.query('SELECT * FROM tasks WHERE id = ?', [id]);
+    if (tasks.length === 0) {
+      await connection.rollback();
+      return res.status(404).json({ error: 'Tâche non trouvée' });
+    }
+    const task = tasks[0];
+    await connection.query(
       `INSERT INTO tasks (id, title, description, project_id, assignee_id, status, priority, due_date, sprint_id)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [newId, `${original.title} (Copie)`, original.description, original.project_id, original.assignee_id, original.status, original.priority, original.due_date, original.sprint_id]
+      [newId, `${task.title} (Copie)`, task.description, task.project_id, task.assignee_id,
+        task.status, task.priority, task.due_date, task.sprint_id]
     );
-
-    // Dupliquer les sous-tâches
-    const [subtasks] = await db.query('SELECT title, completed FROM subtasks WHERE task_id = ?', [id]);
-    for (let st of subtasks) {
-      const subId = `SUB-${Date.now().toString().slice(-4)}-${Math.floor(Math.random()*100)}`;
-      await db.query('INSERT INTO subtasks (id, task_id, title, completed) VALUES (?, ?, ?, ?)', [subId, newId, st.title, st.completed]);
+    const [subtasks] = await connection.query('SELECT title, completed FROM subtasks WHERE task_id = ?', [id]);
+    for (const subtask of subtasks) {
+      await connection.query(
+        'INSERT INTO subtasks (id, task_id, title, completed) VALUES (?, ?, ?, ?)',
+        [`SUB-${crypto.randomUUID()}`, newId, subtask.title, subtask.completed]
+      );
     }
-
+    const [dependencies] = await connection.query('SELECT depends_on_task_id FROM task_dependencies WHERE task_id = ?', [id]);
+    for (const dependency of dependencies) {
+      await connection.query('INSERT INTO task_dependencies (task_id, depends_on_task_id) VALUES (?, ?)', [newId, dependency.depends_on_task_id]);
+    }
+    await connection.commit();
     res.status(201).json({ message: 'Tâche dupliquée avec succès', taskId: newId });
   } catch (err) {
+    await connection.rollback();
     res.status(500).json({ error: 'Erreur lors de la duplication', details: err.message });
+  } finally {
+    connection.release();
   }
 };
 
-// Ajouter un commentaire à une tâche
 exports.addComment = async (req, res) => {
-  const { taskId } = req.params;
-  const { author_id, text } = req.body;
-  const commentId = `CMT-${Date.now().toString().slice(-4)}`;
-
+  const id = `CMT-${crypto.randomUUID()}`;
   try {
-    await db.query('INSERT INTO task_comments (id, task_id, author_id, text) VALUES (?, ?, ?, ?)', [commentId, taskId, author_id, text]);
-    res.status(201).json({ message: 'Commentaire ajouté avec succès', commentId });
+    await db.query(
+      'INSERT INTO task_comments (id, task_id, author_id, text) VALUES (?, ?, ?, ?)',
+      [id, req.params.taskId, req.body.author_id || 'USR-1', req.body.text]
+    );
+    res.status(201).json({ message: 'Commentaire ajouté avec succès', commentId: id });
   } catch (err) {
-    res.status(500).json({ error: 'Erreur lors de l\'ajout du commentaire', details: err.message });
+    res.status(500).json({ error: 'Erreur lors de l’ajout du commentaire', details: err.message });
   }
 };

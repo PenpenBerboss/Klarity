@@ -4,6 +4,7 @@ import { Search, Bell, Menu, Moon, Sun, User } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { NotificationCenter } from './notification-center';
 import { useNotifications } from './notification-provider';
+import { getStoredTeam, saveUserSettings } from '@/lib/api';
 
 const LiveClock = dynamic(() => import('./live-clock').then(m => m.LiveClock), {
   ssr: false,
@@ -25,11 +26,23 @@ export function Topbar({
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [profileName, setProfileName] = useState('');
   const { unreadCount } = useNotifications();
 
   useEffect(() => {
     const timer = setTimeout(() => setMounted(true), 0);
     return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    const loadProfile = () => {
+      const members = getStoredTeam();
+      const profile = members.find(member => String(member.id) === 'USR-1') || members[0];
+      setProfileName(profile?.name || '');
+    };
+    loadProfile();
+    window.addEventListener('klarity_db_update', loadProfile);
+    return () => window.removeEventListener('klarity_db_update', loadProfile);
   }, []);
 
   return (
@@ -56,7 +69,11 @@ export function Topbar({
       <div className="flex items-center gap-2 sm:gap-3">
         <LiveClock />
         <button 
-          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+          onClick={() => {
+            const nextTheme = theme === 'dark' ? 'light' : 'dark';
+            setTheme(nextTheme);
+            saveUserSettings({ theme: nextTheme });
+          }}
           className="p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors cursor-pointer"
           aria-label="Toggle theme"
           title={mounted ? (theme === 'dark' ? "Passer au thème clair" : "Passer au thème sombre") : "Changer de thème"}
@@ -85,13 +102,13 @@ export function Topbar({
         <button 
           onClick={onOpenProfile}
           className="flex items-center gap-2.5 p-1 sm:p-1.5 rounded-full bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-200/80 dark:border-indigo-500/30 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-all cursor-pointer group shadow-2xs"
-          title="Mon Profil : Samuel Mbarga (Cliquer pour ouvrir)"
+          title={profileName ? `Mon profil : ${profileName}` : 'Mon profil'}
         >
           <div className="w-8 h-8 rounded-full bg-indigo-600 dark:bg-indigo-500 text-white flex items-center justify-center shadow-xs shrink-0 group-hover:scale-105 transition-transform">
             <User size={18} />
           </div>
           <span className="text-xs font-semibold pr-1.5 hidden sm:inline-block text-gray-700 dark:text-gray-200">
-            Samuel M.
+            {profileName.split(' ').slice(0, 2).join(' ')}
           </span>
         </button>
       </div>

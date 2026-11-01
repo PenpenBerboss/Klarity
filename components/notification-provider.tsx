@@ -5,6 +5,8 @@ import {
   getStoredNotifications, 
   createSystemNotification, 
   markNotificationRead, 
+  markAllNotificationsRead,
+  deleteNotification as deleteNotificationFromDb,
   clearAllNotifications as clearNotificationsFromDb, 
   NotificationItem 
 } from '@/lib/api';
@@ -74,23 +76,11 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   }, []);
 
   const markAllAsRead = useCallback(() => {
-    setNotifications(prev => {
-      const updated = prev.map(n => ({ ...n, read: true }));
-      if (typeof window !== 'undefined') {
-        window.localStorage.setItem('klarity_db_notifications', JSON.stringify(updated));
-      }
-      return updated;
-    });
+    setNotifications(markAllNotificationsRead());
   }, []);
 
   const deleteNotification = useCallback((id: string) => {
-    setNotifications(prev => {
-      const updated = prev.filter(n => n.id !== id);
-      if (typeof window !== 'undefined') {
-        window.localStorage.setItem('klarity_db_notifications', JSON.stringify(updated));
-      }
-      return updated;
-    });
+    setNotifications(deleteNotificationFromDb(id));
   }, []);
 
   const clearAll = useCallback(() => {

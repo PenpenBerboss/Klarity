@@ -1,3 +1,4 @@
+const crypto = require('node:crypto');
 const db = require('../config/db');
 
 // Récupérer les notifications d'un utilisateur
@@ -17,12 +18,12 @@ exports.getNotifications = async (req, res) => {
 // Créer une notification
 exports.createNotification = async (req, res) => {
   const { user_id, type, title, message, link } = req.body;
-  const id = `NTF-${Date.now().toString().slice(-4)}`;
+  const id = req.body.id || `NTF-${crypto.randomUUID()}`;
 
   try {
     await db.query(
-      'INSERT INTO notifications (id, user_id, type, title, message, link) VALUES (?, ?, ?, ?, ?, ?)',
-      [id, user_id || 'USR-1', type || 'system', title, message, link || '#']
+      'INSERT INTO notifications (id, user_id, type, title, message, is_read, link) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [id, user_id || 'USR-1', type || 'system', title, message, Boolean(req.body.read), link || '#']
     );
     res.status(201).json({ message: 'Notification créée', notificationId: id });
   } catch (err) {
@@ -54,11 +55,20 @@ exports.markAllAsRead = async (req, res) => {
 
 // Effacer toutes les notifications
 exports.clearAllNotifications = async (req, res) => {
-  const userId = req.body.userId || 'USR-1';
+  const userId = req.body?.userId || req.query.userId || 'USR-1';
   try {
     await db.query('DELETE FROM notifications WHERE user_id = ?', [userId]);
     res.json({ message: 'Toutes les notifications ont été effacées' });
   } catch (err) {
     res.status(500).json({ error: 'Erreur lors de l\'effacement', details: err.message });
+  }
+};
+
+exports.deleteNotification = async (req, res) => {
+  try {
+    await db.query('DELETE FROM notifications WHERE id = ?', [req.params.id]);
+    res.json({ message: 'Notification supprimée' });
+  } catch (err) {
+    res.status(500).json({ error: 'Erreur lors de la suppression', details: err.message });
   }
 };

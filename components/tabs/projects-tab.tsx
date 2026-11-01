@@ -25,7 +25,7 @@ export function ProjectsTab() {
     const loadFromDb = () => {
       setProjects(getStoredProjects());
       const team = getStoredTeam().filter(m => m.status !== 'invité').map(m => m.name);
-      setManagers(team.length > 0 ? team : ['Samuel Mbarga']);
+      setManagers(team);
     };
 
     loadFromDb();

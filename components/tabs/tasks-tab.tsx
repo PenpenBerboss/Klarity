@@ -16,6 +16,7 @@ import {
   getStoredProjects, 
   getStoredSprints, 
   saveSprint as saveSprintToDb,
+  deleteSprint as deleteSprintFromDb,
   Task, 
   Sprint 
 } from '@/lib/api';
@@ -34,7 +35,7 @@ export function TasksTab() {
   const [projectsList, setProjectsList] = useState<string[]>([]);
   
   const [viewMode, setViewMode] = useState<'kanban' | 'calendar' | 'planning' | 'timeline'>('kanban');
-  const [currentMonth, setCurrentMonth] = useState(new Date(2026, 2, 1));
+  const [currentMonth, setCurrentMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1));
   const [selectedProject, setSelectedProject] = useState<string>('Tous les projets');
   const [selectedPriorityFilter, setSelectedPriorityFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -52,10 +53,10 @@ export function TasksTab() {
       setSprints(getStoredSprints());
       
       const members = getStoredTeam().filter(m => m.status !== 'invité').map(m => m.name);
-      setTeamMembers(members.length > 0 ? members : ['Samuel Mbarga']);
+      setTeamMembers(members);
 
       const projects = getStoredProjects().map(p => p.name);
-      setProjectsList(projects.length > 0 ? projects : ['Refonte ERP']);
+      setProjectsList(projects);
     };
 
     loadData();
@@ -167,8 +168,8 @@ export function TasksTab() {
     setEditingTask({
       id: newId,
       title: '',
-      project: selectedProject === 'Tous les projets' ? (projectsList[0] || 'Refonte ERP') : selectedProject,
-      assignee: teamMembers[0] || 'Samuel Mbarga',
+      project: selectedProject === 'Tous les projets' ? (projectsList[0] || '') : selectedProject,
+      assignee: teamMembers[0] || '',
       status: 'todo',
       priority: 'medium',
       dueDate: new Date().toISOString().split('T')[0],
@@ -192,8 +193,18 @@ export function TasksTab() {
   };
 
   const handleUpdateSprints = (newSprints: Sprint[]) => {
+    const newIds = new Set(newSprints.map(sprint => sprint.id));
+    sprints.filter(sprint => !newIds.has(sprint.id)).forEach(sprint => deleteSprintFromDb(sprint.id));
     newSprints.forEach(s => saveSprintToDb(s));
     setSprints(newSprints);
+  };
+
+  const handleUpdateTasks = (newTasks: Task[]) => {
+    newTasks.forEach(task => {
+      const previous = tasks.find(current => current.id === task.id);
+      if (!previous || previous.sprintId !== task.sprintId) saveTaskToDb(task);
+    });
+    setTasks(newTasks);
   };
 
   return (
@@ -330,6 +341,7 @@ export function TasksTab() {
           updateTaskPriority={updateTaskPriority}
           updateTaskAssignee={updateTaskAssignee}
           teamMembers={teamMembers}
+          projectsList={projectsList}
         />
       )}
       
@@ -345,7 +357,7 @@ export function TasksTab() {
       {viewMode === 'planning' && (
         <PlanningView 
           tasks={tasks}
-          setTasks={setTasks}
+          setTasks={handleUpdateTasks}
           sprints={sprints}
           setSprints={handleUpdateSprints}
           openEditModal={openEditModal}
